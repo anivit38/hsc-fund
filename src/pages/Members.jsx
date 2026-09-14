@@ -1,0 +1,145 @@
+import { useState } from 'react';
+import Layout from '../components/Layout.jsx';
+import { useTable } from '../hooks.js';
+import { RoleBadge } from '../components/Badge.jsx';
+import { api } from '../api.js';
+import { date } from '../format.js';
+
+const ROLES = ['analyst', 'pm', 'cio', 'advisor'];
+const emptyNew = { full_name: '', email: '', role: 'analyst', sleeve_id: '', grade: '' };
+
+export default function Members() {
+  const { data: profiles, loading, reload } = useTable('profiles');
+  const { data: sleeves } = useTable('sleeves');
+  const [busy, setBusy] = useState(null);
+  const [err, setErr] = useState(null);
+  const [newMember, setNewMember] = useState(emptyNew);
+  const [resetFor, setResetFor] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+
+  const sleeveName = (id) => sleeves?.find((s) => s.id === id)?.name || '—';
+
+  const update = async (uid, patch) => {
+    setBusy(uid);
+    setErr(null);
+    try {
+      await api.invoke('manage_member', { user_id: uid, ...patch });
+      await reload();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const create = async () => {
+    setBusy('create');
+    setErr(null);
+    try {
+      await api.invoke('create_member', { ...newMember, sleeve_id: newMember.sleeve_id || null });
+      setNewMember(emptyNew);
+      await reload();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const doReset = async () => {
+    setBusy('reset');
+    setErr(null);
+    try {
+      await api.invoke('reset_member_password', { user_id: resetFor, new_password: newPassword });
+      setResetFor(null); setNewPassword('');
+      alert('Password reset. Tell the member their new password directly.');
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Layout title="Members">
+      {err && <div className="banner banner-error">{err}</div>}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Sleeve</th><th>Grade</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+            <tbody>
+              {!loading && profiles.map((p) => (
+                <tr key={p.user_id}>
+                  <td style={{ fontWeight: 700 }}>{p.full_name}</td>
+                  <td className="muted">{p.email}</td>
+                  <td>
+                    <select value={p.role} disabled={busy === p.user_id} onChange={(e) => update(p.user_id, { role: e.target.value })} style={{ width: 130 }}>
+                      {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </td>
+                  <td>
+                    <select
+                      value={p.sleeve_id || ''}
+                      disabled={busy === p.user_id || (p.role !== 'pm' && p.role !== 'analyst')}
+                      onChange={(e) => update(p.user_id, { sleeve_id: e.target.value })}
+                      style={{ width: 160 }}
+                    >
+                      <option value="">—</option>
+                      {sleeves?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </td>
+                  <td className="muted">{p.grade || '—'}</td>
+                  <td>
+                    <button className={`btn btn-sm ${p.active ? '' : 'btn-danger'}`} disabled={busy === p.user_id} onClick={() => update(p.user_id, { active: !p.active })}>
+                      {p.active ? 'Active' : 'Inactive'}
+                    </button>
+                  </td>
+                  <td className="muted">{date(p.created_at)}</td>
+                  <td><button className="btn btn-sm" onClick={() => setResetFor(p.user_id)}>Reset password</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {resetFor && (
+        <div className="card card-pad" style={{ maxWidth: 420, marginBottom: 16 }}>
+          <h3 style={{ marginTop: 0, fontSize: 14 }}>Reset password for {profiles.find((p) => p.user_id === resetFor)?.full_name}</h3>
+          <div className="field">
+            <label className="required">New password (8+ characters)</label>
+            <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-primary" disabled={busy || newPassword.length < 8} onClick={doReset}>Set password</button>
+            <button className="btn" onClick={() => setResetFor(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div className="card card-pad" style={{ maxWidth: 520 }}>
+        <h3 style={{ marginTop: 0, fontSize: 14 }}>Add a member</h3>
+        <p className="muted" style={{ fontSize: 12 }}>No self-signup — this is the only way new accounts get created.</p>
+        <div className="grid grid-2">
+          <div className="field"><label className="required">Full name</label><input value={newMember.full_name} onChange={(e) => setNewMember((m) => ({ ...m, full_name: e.target.value }))} /></div>
+          <div className="field"><label className="required">Email</label><input type="email" value={newMember.email} onChange={(e) => setNewMember((m) => ({ ...m, email: e.target.value }))} /></div>
+          <div className="field">
+            <label>Role</label>
+            <select value={newMember.role} onChange={(e) => setNewMember((m) => ({ ...m, role: e.target.value }))}>
+              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>Sleeve</label>
+            <select value={newMember.sleeve_id} onChange={(e) => setNewMember((m) => ({ ...m, sleeve_id: e.target.value }))}>
+              <option value="">—</option>
+              {sleeves?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div className="field"><label>Grade</label><input value={newMember.grade} onChange={(e) => setNewMember((m) => ({ ...m, grade: e.target.value }))} placeholder="Year 11" /></div>
+        </div>
+        <button className="btn btn-primary" disabled={busy || !newMember.full_name || !newMember.email} onClick={create}>Create member</button>
+      </div>
+    </Layout>
+  );
+}

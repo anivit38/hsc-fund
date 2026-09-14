@@ -1,0 +1,29 @@
+# Render Blueprint for the HSC Fund API. In the Render dashboard: New →
+# Blueprint → point at this repo, and Render reads this file automatically.
+# See DEPLOY.md for the full walkthrough (including the one-time env vars you
+# must fill in after the service is created).
+services:
+  - type: web
+    name: hsc-fund-api
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm install
+    startCommand: npm run server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LIVE_MARKET
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true # Render generates a strong random secret for you
+      - key: CORS_ORIGIN
+        value: "" # fill in with your Firebase Hosting URL(s), comma-separated, after deploying the frontend
+      - key: DB_FILE
+        value: /var/data/db.json
+    disk:
+      name: hsc-fund-data
+      mountPath: /var/data
+      sizeGB: 1 # persistent disk so the fund's history survives restarts/redeploys — requires a paid plan; see DEPLOY.md for the free-tier alternative
