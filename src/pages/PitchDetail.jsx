@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout.jsx';
-import { useTable, useView } from '../hooks.js';
+import { useTable } from '../hooks.js';
 import { StatusBadge, KindBadge } from '../components/Badge.jsx';
 import { useAuth } from '../AuthContext.jsx';
 import { api } from '../api.js';
-import { money, dateTime, date } from '../format.js';
+import { dateTime, date } from '../format.js';
 
 function Field({ label, children }) {
   return (
