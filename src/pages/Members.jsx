@@ -77,9 +77,31 @@ export default function Members() {
     }
   };
 
+  const byRole = (r) => roster.filter((p) => p.role === r).length;
+
   return (
     <Layout title="Members">
       {err && <div className="banner banner-error">{err}</div>}
+
+      <div className="grid grid-4" style={{ marginBottom: 16 }}>
+        <div className="card stat-tile">
+          <div className="label">Members</div>
+          <div className="value">{roster.length}</div>
+          <div className="delta muted">{pending.length ? `${pending.length} awaiting approval` : 'all approved'}</div>
+        </div>
+        <div className="card stat-tile">
+          <div className="label">Analysts</div>
+          <div className="value">{byRole('analyst')}</div>
+        </div>
+        <div className="card stat-tile">
+          <div className="label">PMs</div>
+          <div className="value">{byRole('pm')}</div>
+        </div>
+        <div className="card stat-tile">
+          <div className="label">CIO / Advisor</div>
+          <div className="value">{byRole('cio') + byRole('advisor')}</div>
+        </div>
+      </div>
 
       {pending.length > 0 && (
         <div className="card" style={{ marginBottom: 16, borderColor: 'var(--gold-500)' }}>

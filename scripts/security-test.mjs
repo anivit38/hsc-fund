@@ -96,7 +96,10 @@ try {
 }
 check("A PM from a different sleeve can approve it (sleeves don't gate decisions)", crossApprove?.status === 'pm_approved', crossApprove?.error);
 
-// CIO can trade directly, outside the pitch process entirely.
+// CIO can trade directly, outside the pitch process entirely — but a reason is mandatory.
+let noReasonBlocked = false;
+try { alex.invoke('quick_trade', { ticker: 'TLT', side: 'buy', target_wt_pct: 5 }); } catch (e) { noReasonBlocked = e.status === 400; }
+check('Quick trade requires a reason before it can be placed', noReasonBlocked);
 const qt = alex.invoke('quick_trade', { ticker: 'TLT', side: 'buy', target_wt_pct: 5, note: 'Adding Treasury duration directly' });
 check('CIO quick-trades a position directly (no pitch involved)', qt.order.status === 'pending_open' && qt.order.pitch_id === null);
 const qtAdv = alex.invoke('advance_session');

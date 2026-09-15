@@ -166,7 +166,8 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 
 /* ---- top bar ---- */
 .topbar {
-  background: var(--surface); color: var(--text); display: flex; align-items: center;
+  background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  color: var(--text); display: flex; align-items: center;
   gap: 20px; padding: 0 32px; height: 84px; position: sticky; top: 0; z-index: 20;
   flex-wrap: wrap; border-bottom: 1px solid var(--border);
 }
@@ -370,6 +371,14 @@ textarea { resize: vertical; min-height: 78px; line-height: 1.55; }
 .checklist-detail { color: var(--muted); margin-left: auto; font-size: 12px; }
 
 .spinner { width: 22px; height: 22px; border: 3px solid var(--ink-50); border-top-color: var(--ink); border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 37%, var(--surface-2) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  display: block;
+}
+@keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 .center-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
 

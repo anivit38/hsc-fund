@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout.jsx';
 import { useTable } from '../hooks.js';
 import { StatusBadge, KindBadge } from '../components/Badge.jsx';
+import { SkeletonCard } from '../components/Skeleton.jsx';
 import { useAuth } from '../AuthContext.jsx';
 import { api } from '../api.js';
 import { dateTime, date } from '../format.js';
@@ -37,7 +38,7 @@ export default function PitchDetail() {
   const sleeve = sleeves.data?.find((s) => s.id === pitch?.sleeve_id);
   const myComments = comments.data?.filter((c) => c.pitch_id === id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) || [];
 
-  if (pitches.loading) return <Layout title="Pitch"><div className="empty">Loading…</div></Layout>;
+  if (pitches.loading) return <Layout title="Pitch"><div className="grid grid-2"><SkeletonCard lines={5} /><SkeletonCard lines={3} /></div></Layout>;
   if (!pitch) return <Layout title="Pitch not found"><div className="empty">This pitch doesn't exist, or you don't have access to it.</div></Layout>;
 
   const isMine = pitch.analyst_id === profile.user_id;

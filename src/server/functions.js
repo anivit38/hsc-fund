@@ -240,13 +240,18 @@ export function quick_trade(uid, { ticker, side, target_wt_pct, qty, note, risk_
     if (!ticker) throw new ApiError(400, 'ticker is required');
     if (side !== 'buy' && side !== 'sell') throw new ApiError(400, 'side must be "buy" or "sell"');
     if (target_wt_pct == null && qty == null) throw new ApiError(400, 'Provide either a target weight (%) or an exact quantity');
+    // A pitch is required to give a falsifiable thesis before it can be traded
+    // (see checkPitchConstraints in policies.js) — a quick trade skips the
+    // pitch entirely, so it needs its own equivalent: no trading on a whim
+    // with nothing written down about why.
+    if (!String(note ?? '').trim()) throw new ApiError(400, 'A reason for this trade is required');
     const kind = side === 'buy' ? 'entry' : 'trim';
     const at = stamp(s);
     const { order, preview } = createOrder(s, {
       ticker, side, kind, target_wt_pct: target_wt_pct ?? null, qty: qty ?? null,
       actor: me.user_id, risk_override, override_note, at,
     });
-    order.note = note ? String(note).trim() : null;
+    order.note = String(note).trim();
     audit(
       s, me.user_id, order.risk_override ? 'trade.quick_executed_with_override' : 'trade.quick_executed', 'orders', order.id,
       { ticker, side, qty: order.qty, ref_price: order.ref_price, note: order.note, breaches: order.breaches },

@@ -2,6 +2,7 @@ import Layout from '../components/Layout.jsx';
 import LineChart from '../components/LineChart.jsx';
 import BarBreakdown from '../components/BarBreakdown.jsx';
 import CountUp from '../components/CountUp.jsx';
+import { SkeletonCard } from '../components/Skeleton.jsx';
 import { useView } from '../hooks.js';
 import { money, pct, pctAbs, timeAgo, dateTime } from '../format.js';
 
@@ -36,7 +37,13 @@ export default function Dashboard() {
       }
     >
       {loading ? (
-        <div className="empty">Loading…</div>
+        <>
+          <SkeletonCard lines={3} />
+          <div className="grid grid-2" style={{ marginTop: 16 }}>
+            <SkeletonCard lines={4} />
+            <SkeletonCard lines={4} />
+          </div>
+        </>
       ) : (
         <>
           <div className="hero">

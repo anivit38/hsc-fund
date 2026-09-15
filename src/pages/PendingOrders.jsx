@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import Layout from '../components/Layout.jsx';
 import { useTable } from '../hooks.js';
 import { StatusBadge } from '../components/Badge.jsx';
-import { api } from '../api.js';
+import { api, ApiError } from '../api.js';
 import { money, dateTime, ASSET_CLASS_LABEL } from '../format.js';
 
 function QuickTrade({ onDone }) {
@@ -12,7 +12,7 @@ function QuickTrade({ onDone }) {
   const [mode, setMode] = useState('weight'); // 'weight' | 'qty'
   const [wt, setWt] = useState('');
   const [qty, setQty] = useState('');
-  const [note, setNote] = useState('');
+  const [reason, setReason] = useState('');
   const [overrideNote, setOverrideNote] = useState('');
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -31,6 +31,10 @@ function QuickTrade({ onDone }) {
   }, [securities]);
 
   const sec = securities?.find((s) => s.ticker === ticker);
+  const sizeFilled = (mode === 'weight' && wt) || (mode === 'qty' && qty);
+  const ready = ticker && sizeFilled && reason.trim();
+  const hasHardBreach = preview?.hard_breaches?.length > 0;
+  const needsOverride = preview?.breaches?.length > 0 && !hasHardBreach;
 
   const args = () => ({
     ticker, side,
@@ -38,32 +42,27 @@ function QuickTrade({ onDone }) {
     qty: mode === 'qty' ? Number(qty) : undefined,
   });
 
-  const loadPreview = async () => {
-    setErr(null);
-    setPreview(null);
-    try {
-      const pv = await api.view('preview_trade', { ...args(), kind: side === 'buy' ? 'entry' : 'trim' });
-      setPreview(pv);
-    } catch (e) {
-      setErr(e.message);
-    }
+  const reset = () => {
+    setTicker(''); setWt(''); setQty(''); setReason(''); setOverrideNote(''); setPreview(null);
   };
 
-  const execute = async (override) => {
+  // One button handles the whole flow: place the order; if the risk engine
+  // finds a breach, show exactly what it found and switch the same button to
+  // require an override note before it can be pressed again.
+  const submit = async () => {
     setBusy(true);
     setErr(null);
     try {
-      await api.invoke('quick_trade', { ...args(), note, risk_override: !!override, override_note: override ? overrideNote : undefined });
-      setTicker(''); setWt(''); setQty(''); setNote(''); setOverrideNote(''); setPreview(null);
+      await api.invoke('quick_trade', { ...args(), note: reason, risk_override: needsOverride, override_note: needsOverride ? overrideNote : undefined });
+      reset();
       onDone();
     } catch (e) {
+      if (e instanceof ApiError && e.details?.preview) setPreview(e.details.preview);
       setErr(e.message);
     } finally {
       setBusy(false);
     }
   };
-
-  const canPreview = ticker && ((mode === 'weight' && wt) || (mode === 'qty' && qty));
 
   return (
     <div className="card card-pad" style={{ marginBottom: 20 }}>
@@ -112,34 +111,39 @@ function QuickTrade({ onDone }) {
           </div>
         )}
         <div className="field">
-          <label>Note (optional)</label>
-          <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why this trade, in one line" />
+          <label className="required">Reason for this trade</label>
+          <input type="text" value={reason} onChange={(e) => { setReason(e.target.value); setPreview(null); }} placeholder="Why this trade, right now, in one line" />
         </div>
       </div>
 
-      <button className="btn btn-sm" disabled={!canPreview} onClick={loadPreview} style={{ marginBottom: 10 }}>Preview risk checks</button>
       {err && <div className="banner banner-error">{err}</div>}
+
       {preview && (
-        <div style={{ marginBottom: 10 }}>
-          <p className="muted" style={{ fontSize: 12 }}>{preview.qty.toLocaleString()} units at ~{money(preview.price, 2)} · fee {money(preview.fee, 2)}</p>
-          {preview.checks.map((c) => (
+        <div style={{ marginBottom: 12 }}>
+          <p className="muted" style={{ fontSize: 12 }}>{preview.qty?.toLocaleString()} units at ~{money(preview.price, 2)} · fee {money(preview.fee, 2)}</p>
+          {preview.checks?.map((c) => (
             <div className="checklist-item" key={c.key}>
               <span className={`icon ${c.ok ? 'ok' : 'fail'}`}>{c.ok ? '✓' : '!'}</span>
               <span>{c.label}</span>
               <span className="checklist-detail">{c.detail}</span>
             </div>
           ))}
-          {preview.breaches.length > 0 && (
+          {needsOverride && (
             <div className="field" style={{ marginTop: 10 }}>
               <label className="required">Override note (required to proceed past a breach)</label>
               <textarea value={overrideNote} onChange={(e) => setOverrideNote(e.target.value)} />
             </div>
           )}
-          <button className="btn btn-primary" disabled={busy || preview.hard_breaches.length > 0} onClick={() => execute(preview.breaches.length > 0)}>
-            {preview.breaches.length > 0 ? 'Execute with override' : `Execute ${side}`}
-          </button>
         </div>
       )}
+
+      <button
+        className={`btn ${needsOverride ? 'btn-danger' : 'btn-primary'}`}
+        disabled={busy || !ready || hasHardBreach || (needsOverride && !overrideNote.trim())}
+        onClick={submit}
+      >
+        {busy ? 'Placing…' : needsOverride ? 'Place order with override' : `Place order — ${side === 'buy' ? 'Buy' : 'Sell'}${ticker ? ` ${ticker}` : ''}`}
+      </button>
     </div>
   );
 }
