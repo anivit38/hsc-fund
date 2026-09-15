@@ -1,6 +1,7 @@
 import Layout from '../components/Layout.jsx';
 import LineChart from '../components/LineChart.jsx';
 import BarBreakdown from '../components/BarBreakdown.jsx';
+import CountUp from '../components/CountUp.jsx';
 import { useView } from '../hooks.js';
 import { money, pct, pctAbs, timeAgo, dateTime } from '../format.js';
 
@@ -40,15 +41,15 @@ export default function Dashboard() {
         <>
           <div className="hero">
             <div>
-              <div className="hero-figure">{money(s.nav)}</div>
+              <div className="hero-figure"><CountUp value={s.nav} format={(v) => money(v)} /></div>
               <div className="hero-sub">Net Asset Value · as of {s.as_of}</div>
               <div className={`hero-delta ${s.inception_return_pct >= 0 ? 'pos' : 'neg'}`}>
                 {pct(s.inception_return_pct)} since inception
               </div>
               <div className="hero-statrow">
-                <div className="hero-stat"><b>{s.position_count}</b><span>positions</span></div>
-                <div className="hero-stat"><b>{pctAbs(s.cash_pct)}</b><span>cash</span></div>
-                <div className="hero-stat"><b>{pctAbs(s.invested_pct)}</b><span>invested</span></div>
+                <div className="hero-stat"><b><CountUp value={s.position_count} format={(v) => Math.round(v)} /></b><span>positions</span></div>
+                <div className="hero-stat"><b><CountUp value={s.cash_pct} format={(v) => pctAbs(v)} /></b><span>cash</span></div>
+                <div className="hero-stat"><b><CountUp value={s.invested_pct} format={(v) => pctAbs(v)} /></b><span>invested</span></div>
               </div>
             </div>
             <div>

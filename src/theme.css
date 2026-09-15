@@ -235,7 +235,10 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 
 .hero {
   display: grid; grid-template-columns: minmax(230px, 300px) 1fr; gap: 28px;
-  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 26px 28px; margin-bottom: 24px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--ink) 6%, transparent), transparent 60%),
+    var(--surface);
+  border: 1px solid var(--border); border-radius: 12px; padding: 26px 28px; margin-bottom: 24px;
 }
 .hero-figure { font-family: var(--font-display); font-size: 42px; font-weight: 500; line-height: 1; letter-spacing: -0.02em; }
 .hero-sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
@@ -304,9 +307,18 @@ label { display: block; font-size: 12.5px; margin-bottom: 6px; font-weight: 600;
 .field { margin-bottom: 16px; }
 .field .hint { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
 input[type=text], input[type=number], input[type=email], input[type=password], input[type=date], textarea, select {
-  width: 100%; font-size: 13.5px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 7px; background: #fff; color: var(--text);
+  width: 100%; font-size: 13.5px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text);
 }
 input:focus, textarea:focus, select:focus { outline: 2px solid var(--brass); outline-offset: -1px; border-color: var(--brass); }
+/* Chromium renders a <select>'s open dropdown list as a native OS popup that
+   doesn't reliably honor our custom colors for individual <option>s, and
+   under a dark color-scheme it falls back to low-contrast gray-on-white —
+   exactly the bug reported here. Forcing the popup itself to the light
+   scheme keeps it legible (normal dark-on-light) in both app themes; the
+   CLOSED control still uses our own explicit background/color above, which
+   always wins over UA defaults regardless of color-scheme. */
+select { color-scheme: light; }
+select option { color: #221f1a; background: #fff; }
 textarea { resize: vertical; min-height: 78px; line-height: 1.55; }
 .required::after { content: ' *'; color: var(--loss); }
 
@@ -378,7 +390,12 @@ textarea { resize: vertical; min-height: 78px; line-height: 1.55; }
 .btn { transition: background-color 0.15s ease, transform 0.08s ease, box-shadow 0.15s ease; }
 .btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
 .nav-link { transition: background-color 0.15s ease, color 0.15s ease; }
-tbody tr { transition: background-color 0.12s ease; }
+tbody tr { transition: background-color 0.12s ease; animation: rise-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+tbody tr:nth-child(n+2) { animation-delay: 0.02s; }
+tbody tr:nth-child(n+4) { animation-delay: 0.04s; }
+tbody tr:nth-child(n+7) { animation-delay: 0.06s; }
+tbody tr:nth-child(n+11) { animation-delay: 0.08s; }
+.badge, .stat-tile { animation: rise-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .stat-tile .value { transition: color 0.2s ease; }
 
 .value-flash-pos { animation: pulse-once 1.1s ease-out; }

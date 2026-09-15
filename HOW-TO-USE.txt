@@ -1,0 +1,187 @@
+====================================================================
+ HSC ENDOWMENT — HOW TO USE
+ Investment Club mock fund · https://hsc-fund.web.app
+====================================================================
+
+WHAT THIS IS
+--------------------------------------------------------------------
+A paper-trading platform for the school investment club. Nobody's
+real money moves — the fund started with $1,000,000 of pretend cash
+and everything else (stocks, bonds, real estate, commodities, crypto,
+private-market units) is tracked the same way a real fund would:
+analysts research and pitch ideas, a Portfolio Manager reviews them,
+the CIO executes at the weekly Investment Committee, orders fill at
+the next session's opening price, and the fund's NAV (Net Asset
+Value) is recalculated every trading night using real market prices
+pulled live from Yahoo Finance.
+
+Four roles, in order of how much they can do:
+
+  ANALYST   — researches and writes pitches ("I think we should buy
+              X because...").
+  PM        — reviews pitches, approves or rejects them, sets the
+              target position size. Can't approve their own pitch.
+  CIO       — runs Investment Committee, executes approved pitches,
+              can trade directly (Quick Trade), manages members and
+              risk limits, sees everything.
+  ADVISOR   — the faculty sponsor. Read-only, but can comment.
+
+Anyone can pitch any asset class — a stock analyst can just as
+easily pitch a piece of real estate or a bond. There's no lane
+restriction; the only real limits are the fund's actual risk rules
+(position size, sector concentration, cash reserve, etc.), which the
+system enforces automatically and shows you before every trade.
+
+
+GETTING AN ACCOUNT
+--------------------------------------------------------------------
+1. Go to https://hsc-fund.web.app
+2. Click "Create account" (top of the sign-in card).
+3. Enter your name, any email address, and a password (8+ characters).
+4. You'll land on a "pending approval" screen. This is normal — every
+   new account needs a thumbs-up from the CIO before it can see or
+   do anything. Ask whoever is CIO to approve you from the Members
+   screen (usually takes a minute).
+5. Once approved, refresh or sign back in — you're in as an Analyst.
+   The CIO can promote you to PM, CIO or Advisor later from Members
+   if that's your role in the club.
+
+Forgot your password? Ask the CIO to reset it for you from Members —
+there's no self-service "forgot password" flow for a group this size.
+
+
+THE BASICS EVERYONE SEES
+--------------------------------------------------------------------
+DASHBOARD   Fund's total value (NAV), how it's done since inception,
+            a chart of the fund vs. the S&P 500, and a breakdown of
+            what the fund owns by asset class and sleeve (category).
+
+HOLDINGS    Every position the fund currently holds — quantity,
+            average cost, current price, gain/loss, weight of the
+            fund. Sortable and filterable by asset class.
+
+ALL PITCHES An archive of every idea anyone has ever pitched, with
+            search and status filters (submitted, approved, rejected,
+            executed, shelved, expired).
+
+LEADERBOARD Who has contributed the most P&L, submitted the most
+            pitches, and gotten the most approved — bragging rights.
+
+LETTERS     Monthly performance letters to members, auto-drafted
+            from real fund data and edited/published by the rotating
+            analyst or the CIO.
+
+
+IF YOU'RE AN ANALYST
+--------------------------------------------------------------------
+NEW PITCH
+  Pick any ticker from the whole universe (stocks, ETFs, bonds, real
+  estate, commodities, crypto, private funds), write your thesis,
+  and — this part is required — write a FALSIFIER: a specific,
+  measurable thing that would prove you wrong. No falsifier, no
+  submission. It's the single most important field in the form; a
+  pitch without one is a hunch, not a thesis.
+
+  Also fill in a price target, a stop price, and a suggested position
+  size (as % of the fund). You can save as a draft and keep editing,
+  or submit straight away once everything is filled in.
+
+MY PITCHES
+  Everything you've written — drafts, submitted, approved, rejected,
+  executed. Click into any of them to see PM comments and the
+  decision.
+
+LESSONS LEARNED (post-mortems)
+  When a position you originated gets fully sold, the system creates
+  a pending post-mortem for you automatically. You have to explain
+  what happened and — separately — whether your THESIS was right or
+  wrong (independent of whether you made money; "right thesis, lost
+  money" and "wrong thesis, made money by luck" are both real
+  outcomes worth recording honestly). You can't start a new pitch
+  until an overdue post-mortem is filed — mildly annoying on purpose.
+
+
+IF YOU'RE A PM
+--------------------------------------------------------------------
+REVIEW QUEUE
+  Every pitch waiting on a decision, fund-wide (not just "your"
+  sleeve — any PM can review any pitch, just never their own). Open
+  one, ask questions in the comment thread if something's unclear,
+  then Approve (with a target weight and a note) or Reject (with a
+  note explaining why).
+
+SECTOR VIEW
+  Pick any sleeve from the dropdown to see its positions, return vs.
+  its benchmark, and the fund-wide analyst leaderboard.
+
+
+IF YOU'RE THE CIO
+--------------------------------------------------------------------
+TO APPROVE (IC Agenda)
+  Every PM-approved pitch waiting for you to execute at Investment
+  Committee. Open one, hit "Preview risk checks" to see exactly what
+  the trade would do to the fund's exposure, then Execute (or pass —
+  the pitch goes to "shelved"). If a risk limit would be breached,
+  you can still execute with a required override note; it's logged.
+
+CONTROL CENTER (formerly "Pending Orders")
+  This is also where QUICK TRADE lives — the direct way to buy or
+  sell anything without going through the pitch process at all. Pick
+  a ticker, buy or sell, size it by target weight or exact quantity,
+  preview the risk checklist, execute. Useful for rebalancing or
+  acting fast; it goes through the exact same risk engine as an
+  executed pitch. Below that is the full order book — every order
+  ever placed, with a Cancel button on anything still pending.
+
+RISK PANEL
+  Live view of every position's weight, sector exposure, and
+  asset-class exposure against the fund's actual limits. Also where
+  you force-exit a position (requires a note, logged as an override)
+  or mark a security halted/delisted.
+
+MEMBERS
+  Approve pending signups (there's a highlighted section at the top
+  for these), change anyone's role or sleeve, deactivate an account,
+  reset a forgotten password, or add someone directly yourself.
+
+HISTORY (Audit Log)
+  Every trade, override, approval, and role change, timestamped and
+  attributed. Also visible to the Advisor.
+
+
+HOW A TRADE ACTUALLY HAPPENS (either path)
+--------------------------------------------------------------------
+1. An order is created (from an executed pitch, or Quick Trade).
+2. It sits as "pending_open" until the next trading session.
+3. Overnight, the system fills it at that session's REAL opening
+   price (not today's price — this stops anyone gaming a delayed
+   quote, and matches how a real fund would actually trade).
+4. The fund's cash and holdings update; NAV is recalculated that
+   night using real closing prices.
+
+Every listed security (stocks, ETFs, bond funds, commodity funds,
+crypto ETFs) gets its price from the real market via Yahoo Finance —
+genuinely live, not simulated, unless the market data is briefly
+unreachable, in which case that one ticker quietly falls back to a
+simulator so the fund keeps running. Direct real estate and
+private-market holdings are valued once a month, same as a real fund
+would carry them, because there's no live public price for a piece
+of property.
+
+
+ACCOUNT SETTINGS
+--------------------------------------------------------------------
+Change your password anytime from "Account settings" at the bottom
+of the sidebar. Do this the first time you log in if you were set up
+with a default/shared password.
+
+There's also a light/dark mode toggle in the top-right of every page
+(sun/moon icon) — cycles Dark → Light → Auto (follows your device).
+
+
+QUESTIONS OR SOMETHING LOOKS WRONG
+--------------------------------------------------------------------
+Talk to the CIO first (they can fix roles, approvals, and passwords
+directly from Members). Everything the fund does is logged in
+History, so if something looks off, that's the first place to check
+what actually happened and who did it.
