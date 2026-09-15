@@ -67,7 +67,7 @@ export default function Dashboard() {
               <LineChart
                 formatValue={(v) => v.toFixed(1)}
                 series={[
-                  { id: 'nav', label: 'HSC Fund', color: 'var(--purple-500)', points: indexed(navSeries.data) },
+                  { id: 'nav', label: 'HSC Endowment', color: 'var(--purple-500)', points: indexed(navSeries.data) },
                   { id: 'spy', label: 'SPY (benchmark)', color: 'var(--green-500)', points: indexed(benchSeries.data) },
                 ]}
               />

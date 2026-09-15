@@ -17,12 +17,8 @@ export default function Login() {
     setBusy(true);
     setError(null);
     try {
-      if (mode === 'signup') {
-        await signup(fullName, email, password);
-      } else {
-        await login(email, password);
-      }
-      navigate('/');
+      const p = mode === 'signup' ? await signup(fullName, email, password) : await login(email, password);
+      navigate(p?.approved === false ? '/pending' : '/');
     } catch (err) {
       setError(err.message || 'Something went wrong');
     } finally {
@@ -35,7 +31,7 @@ export default function Login() {
       <div className="login-card">
         <div className="login-brand">
           <div className="discover">DISCOVER</div>
-          <div className="fund">HSC Fund</div>
+          <div className="fund">HSC Endowment</div>
           <div className="sub">Investment Club mock fund</div>
         </div>
 
@@ -73,7 +69,7 @@ export default function Login() {
           </div>
           {mode === 'signup' && (
             <div className="field hint" style={{ marginBottom: 0 }}>
-              You'll join as an Analyst and can pitch any asset class right away — a Portfolio Manager or the CIO can change your role later from Members.
+              You'll join as an Analyst who can pitch any asset class — once the CIO approves your account. That's usually quick, and you'll see a status page in the meantime.
             </div>
           )}
           {error && <div className="banner banner-error" style={{ marginTop: 14 }}>{error}</div>}

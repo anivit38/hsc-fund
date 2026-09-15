@@ -112,7 +112,7 @@ export default function PitchDetail() {
             <Field label="Thesis">{pitch.thesis || <em className="muted">Not written yet</em>}</Field>
             {pitch.catalyst && <Field label="Catalyst">{pitch.catalyst}</Field>}
             <Field label="Falsifier — what would make this wrong">
-              {pitch.falsifier || <em className="muted" style={{ color: 'var(--red-500)' }}>Required before submitting</em>}
+              {pitch.falsifier || <em className="muted" style={{ color: 'var(--terracotta-500)' }}>Required before submitting</em>}
             </Field>
             <div className="grid grid-3">
               <Field label="Price target">{pitch.price_target ? `$${pitch.price_target}` : '—'}</Field>

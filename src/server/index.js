@@ -186,10 +186,12 @@ app.get(
       e.status = 404;
       throw e;
     }
-    // A view is a read: require active membership, same as the client's view() wrapper.
-    if (!profileOf(getState(), req.uid)?.active) {
-      const e = new Error('Not signed in');
-      e.status = 401;
+    // A view is a read: require active AND approved membership — same gate
+    // as isMember() in policies.js — not just "logged in".
+    const caller = profileOf(getState(), req.uid);
+    if (!caller?.active || caller.approved === false) {
+      const e = new Error(caller && caller.approved === false ? 'Your account is awaiting CIO approval' : 'Not signed in');
+      e.status = caller && caller.approved === false ? 403 : 401;
       throw e;
     }
     return fn(req.query);
@@ -212,4 +214,4 @@ app.post(
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
-app.listen(PORT, () => console.log(`[boot] HSC Fund API listening on :${PORT}`));
+app.listen(PORT, () => console.log(`[boot] HSC Endowment API listening on :${PORT}`));

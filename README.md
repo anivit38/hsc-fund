@@ -1,10 +1,13 @@
-# HSC Fund
+# HSC Endowment
 
 A paper-trading platform for a school investment club's mock fund — role-aware
 (Analyst / Portfolio Manager / CIO / Faculty Advisor), long-only, with a real
-governance model: analysts pitch, PMs approve inside their sleeve, the CIO
-executes at Investment Committee, orders fill at the next session's open, NAV
-is computed nightly, and every trade, override and role change is audited.
+governance model: any analyst can pitch any asset class, any PM can approve
+any submitted pitch (never their own), the CIO executes at Investment
+Committee, orders fill at the next session's open, NAV is computed nightly,
+and every trade, override and role change is audited. Signup is open to
+anyone, but a new account sits behind a real CIO-approval gate — enforced
+server-side, not just hidden in the UI — before it can read or touch anything.
 
 The universe isn't just stocks — it spans equities, ETFs, fixed income, listed
 and direct **real estate**, commodities, digital assets and private-market fund

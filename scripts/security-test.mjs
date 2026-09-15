@@ -29,12 +29,24 @@ for (const r of runSecurityTests()) check(`[${r.as}] ${r.title}`, r.pass, `expec
 
 console.log('\n— Signup —');
 const cioSignup = signup({ full_name: 'Auto CIO', email: '039443@hsc.on.ca', password: 'testpass1' });
-check('Reserved address auto-provisions as CIO', cioSignup.profile.role === 'cio');
+check('Reserved address auto-provisions as CIO, pre-approved', cioSignup.profile.role === 'cio' && cioSignup.profile.approved === true);
 const analystSignup = signup({ full_name: 'Random Person', email: 'whoever@anything.xyz', password: 'testpass1' });
-check('Any other email signs up as analyst with no sleeve', analystSignup.profile.role === 'analyst' && analystSignup.profile.sleeve_id === null);
+check('Any other email signs up as analyst, unapproved, no sleeve', analystSignup.profile.role === 'analyst' && analystSignup.profile.approved === false && analystSignup.profile.sleeve_id === null);
 let dupe = false;
 try { signup({ full_name: 'Dup', email: 'whoever@anything.xyz', password: 'testpass1' }); } catch { dupe = true; }
 check('Duplicate email is rejected', dupe);
+
+const pending = createClient(analystSignup.profile.user_id);
+check('Unapproved account holds a valid token but sees nothing (RLS, not just UI)', pending.select('pitches').length === 0 && pending.select('securities').length === 0);
+let pendingBlocked = false;
+try { pending.invoke('execute_pitch', { pitch_id: 'anything' }); } catch (e) { pendingBlocked = e.status === 403; }
+check('Unapproved account cannot invoke any Edge Function', pendingBlocked);
+let pendingWriteBlocked = false;
+try { pending.insert('pitches', { analyst_id: analystSignup.profile.user_id, ticker: 'JNJ', side: 'buy', kind: 'entry', thesis: 'x', falsifier: 'y' }); } catch { pendingWriteBlocked = true; }
+check('Unapproved account cannot even draft a pitch', pendingWriteBlocked);
+const approvedNow = createClient('u-alex').invoke('manage_member', { user_id: analystSignup.profile.user_id, approved: true });
+check('CIO approves the pending account', approvedNow.approved === true);
+check('Now-approved account can read the book', pending.select('securities').length > 0);
 
 console.log('\n— Lifecycle —');
 const mia = createClient('u-mia');

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './AuthContext.jsx';
 
 import Login from './pages/Login.jsx';
+import PendingApproval from './pages/PendingApproval.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Book from './pages/Book.jsx';
 import PitchArchive from './pages/PitchArchive.jsx';
@@ -30,6 +31,9 @@ function Guard({ roles, children }) {
     );
   }
   if (!profile) return <Navigate to="/login" replace />;
+  // Approved is the real gate (enforced server-side too) — an unapproved
+  // account can hold a valid session but sees only the pending screen.
+  if (profile.approved === false) return <Navigate to="/pending" replace />;
   if (roles && !roles.includes(profile.role)) return <Navigate to="/" replace />;
   return children;
 }
@@ -37,9 +41,15 @@ function Guard({ roles, children }) {
 export default function App() {
   const { profile, loading } = useAuth();
 
+  const homeFor = (p) => (p ? (p.approved === false ? '/pending' : '/') : '/login');
+
   return (
     <Routes>
-      <Route path="/login" element={profile ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/login" element={profile ? <Navigate to={homeFor(profile)} replace /> : <Login />} />
+      <Route
+        path="/pending"
+        element={!profile ? <Navigate to="/login" replace /> : profile.approved === false ? <PendingApproval /> : <Navigate to="/" replace />}
+      />
       <Route path="/" element={<Guard><Dashboard /></Guard>} />
       <Route path="/book" element={<Guard><Book /></Guard>} />
       <Route path="/pitches" element={<Guard><PitchArchive /></Guard>} />
@@ -61,7 +71,7 @@ export default function App() {
       <Route path="/members" element={<Guard roles={['cio']}><Members /></Guard>} />
       <Route path="/audit" element={<Guard roles={['cio', 'advisor']}><AuditLog /></Guard>} />
 
-      <Route path="*" element={<Navigate to={loading ? '/login' : profile ? '/' : '/login'} replace />} />
+      <Route path="*" element={<Navigate to={loading ? '/login' : homeFor(profile)} replace />} />
     </Routes>
   );
 }

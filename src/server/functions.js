@@ -23,6 +23,7 @@ function resolveCaller(s, jwtUid) {
   const me = jwtUid ? s.profiles.find((p) => p.user_id === jwtUid) : null;
   if (!me) throw new ApiError(401, 'Missing or invalid JWT');
   if (!me.active) throw new ApiError(403, 'This account is inactive');
+  if (me.approved === false) throw new ApiError(403, 'Your account is awaiting CIO approval');
   return me;
 }
 
@@ -244,7 +245,7 @@ export function cancel_order(uid, { order_id } = {}) {
   });
 }
 
-export function manage_member(uid, { user_id, role, sleeve_id, active } = {}) {
+export function manage_member(uid, { user_id, role, sleeve_id, active, approved } = {}) {
   return tx((s) => {
     const me = resolveCaller(s, uid);
     requireRole(me, 'cio');
@@ -254,22 +255,23 @@ export function manage_member(uid, { user_id, role, sleeve_id, active } = {}) {
       role: role ?? target.role,
       sleeve_id: sleeve_id === undefined ? target.sleeve_id : sleeve_id || null,
       active: active ?? target.active,
+      approved: approved ?? target.approved ?? true,
     };
     if (!ROLES.includes(next.role)) throw new ApiError(400, `Unknown role ${next.role}`);
     // Sleeve is just an optional "primary sleeve" label now (who a PM's home
     // dashboard defaults to) — not a requirement, and not an access boundary.
     if (next.role === 'cio' || next.role === 'advisor') next.sleeve_id = null;
-    const activeCios = s.profiles.filter((p) => p.role === 'cio' && p.active && p.user_id !== user_id);
-    if (target.role === 'cio' && (next.role !== 'cio' || !next.active) && activeCios.length === 0) {
-      throw new ApiError(409, 'The fund must keep at least one active CIO');
+    const activeCios = s.profiles.filter((p) => p.role === 'cio' && p.active && p.approved !== false && p.user_id !== user_id);
+    if (target.role === 'cio' && target.approved !== false && (next.role !== 'cio' || !next.active || !next.approved) && activeCios.length === 0) {
+      throw new ApiError(409, 'The fund must keep at least one active, approved CIO');
     }
-    const before = { role: target.role, sleeve_id: target.sleeve_id, active: target.active };
+    const before = { role: target.role, sleeve_id: target.sleeve_id, active: target.active, approved: target.approved };
     Object.assign(target, next);
     for (const sl of s.sleeves) {
       if (sl.pm_user_id === user_id && !(next.role === 'pm' && next.sleeve_id === sl.id)) sl.pm_user_id = null;
       if (next.role === 'pm' && next.sleeve_id === sl.id) sl.pm_user_id = user_id;
     }
-    audit(s, me.user_id, 'member.updated', 'profiles', null, { user_id, before, after: next });
+    audit(s, me.user_id, before.approved === false && next.approved ? 'member.approved' : 'member.updated', 'profiles', null, { user_id, before, after: next });
     return target;
   });
 }
@@ -304,6 +306,7 @@ export function create_member(uid, { full_name, email, role, sleeve_id, grade, p
       sleeve_id: role === 'pm' || role === 'analyst' ? sleeve_id : null,
       grade: grade ?? null,
       active: true,
+      approved: true, // a CIO adding someone directly is itself the vetting step
       created_at: at,
       password_hash: hashPassword(password && password.length >= 8 ? password : 'welcome2026'),
     };

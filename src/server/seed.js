@@ -26,6 +26,7 @@ function initialState() {
     profiles: PROFILES.map((p) => ({
       ...p,
       active: true,
+      approved: true, // seed members are pre-vetted founding members, not self-signups
       created_at: `${FUND_CONFIG.inception_date}T09:00:00.000Z`,
       password_hash: hashPassword(DEFAULT_PASSWORD),
     })),

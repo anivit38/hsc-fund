@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import Layout from '../components/Layout.jsx';
 import { useTable } from '../hooks.js';
-import { RoleBadge } from '../components/Badge.jsx';
 import { api } from '../api.js';
-import { date } from '../format.js';
+import { date, dateTime } from '../format.js';
 
 const ROLES = ['analyst', 'pm', 'cio', 'advisor'];
 const emptyNew = { full_name: '', email: '', role: 'analyst', sleeve_id: '', grade: '' };
@@ -17,7 +16,8 @@ export default function Members() {
   const [resetFor, setResetFor] = useState(null);
   const [newPassword, setNewPassword] = useState('');
 
-  const sleeveName = (id) => sleeves?.find((s) => s.id === id)?.name || '—';
+  const pending = (profiles || []).filter((p) => p.approved === false);
+  const roster = (profiles || []).filter((p) => p.approved !== false);
 
   const update = async (uid, patch) => {
     setBusy(uid);
@@ -63,12 +63,40 @@ export default function Members() {
   return (
     <Layout title="Members">
       {err && <div className="banner banner-error">{err}</div>}
+
+      {pending.length > 0 && (
+        <div className="card" style={{ marginBottom: 16, borderColor: 'var(--gold-500)' }}>
+          <div className="card-header">
+            <h2>⏳ Awaiting approval ({pending.length})</h2>
+            <span className="muted">Self-signups can't see or do anything until approved</span>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Signed up</th><th></th></tr></thead>
+              <tbody>
+                {pending.map((p) => (
+                  <tr key={p.user_id}>
+                    <td style={{ fontWeight: 700 }}>{p.full_name}</td>
+                    <td className="muted">{p.email}</td>
+                    <td className="muted">{dateTime(p.created_at)}</td>
+                    <td style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn btn-sm btn-green" disabled={busy === p.user_id} onClick={() => update(p.user_id, { approved: true })}>Approve</button>
+                      <button className="btn btn-sm btn-danger" disabled={busy === p.user_id} onClick={() => update(p.user_id, { active: false })}>Decline</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="table-wrap">
           <table>
             <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Sleeve</th><th>Grade</th><th>Status</th><th>Joined</th><th></th></tr></thead>
             <tbody>
-              {!loading && profiles.map((p) => (
+              {!loading && roster.map((p) => (
                 <tr key={p.user_id}>
                   <td style={{ fontWeight: 700 }}>{p.full_name}</td>
                   <td className="muted">{p.email}</td>

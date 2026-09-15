@@ -31,7 +31,16 @@ const VERDICTS = ['right_right', 'right_wrong', 'wrong_right', 'wrong_wrong'];
 
 export const profileOf = (s, uid) => (uid ? s.profiles.find((p) => p.user_id === uid) : null);
 const authRole = (s, uid) => profileOf(s, uid)?.role ?? null;
-const isMember = (s, uid) => !!profileOf(s, uid)?.active;
+// A signed-in user only counts as a member once a CIO has approved them
+// (approved defaults true for seed/CIO-created accounts; self-signups start
+// false — see auth.js signup()). This is the actual gate, not the pending
+// screen the client shows — every read and write in this file runs through
+// isMember(), so an unapproved account can hold a valid JWT and still touch
+// nothing real.
+const isMember = (s, uid) => {
+  const p = profileOf(s, uid);
+  return !!p?.active && p.approved !== false;
+};
 
 const blank = (v) => v == null || String(v).trim() === '';
 const same = (a, b, cols) => cols.every((c) => (a[c] ?? null) === (b[c] ?? null));

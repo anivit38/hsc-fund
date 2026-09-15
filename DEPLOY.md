@@ -1,4 +1,4 @@
-# Deploying the HSC Fund
+# Deploying HSC Endowment
 
 Two pieces, deployed separately:
 
@@ -68,11 +68,20 @@ Finance prices for every listed security in the fund.
 
 ## 3. First login
 
-No self-signup (by design — see the spec). Every seeded member's password is
-`welcome2026`; sign in as the CIO first (`alex.chen@school.edu.au`) and either
-reset teammates' passwords from **Members**, or add real people with
-**Add a member** and give them their own login. Everyone should change their
-password from **Account settings** after first login.
+Self-signup is open — anyone can create an account from the sign-in screen
+with any email. One reserved address auto-provisions as CIO the instant it
+signs up (`AUTO_CIO_EMAILS` env var on the Render service, defaulting to
+`039443@hsc.on.ca`); sign up with that address first to get your first CIO.
+
+Everyone else who signs up lands as an Analyst but sees a "pending approval"
+screen and can't read or do anything until the CIO approves them from
+**Members** — that's enforced server-side, not just hidden in the UI. The CIO
+can also add people directly from that same screen (pre-approved, any role),
+or reset a forgotten password.
+
+Every seeded demo member (`alex.chen@school.edu.au` and friends — see
+`src/server/universe.js`) still works too, password `welcome2026`. Everyone
+should change their password from **Account settings** after first login.
 
 ## Git
 
@@ -80,7 +89,7 @@ If this folder isn't a repo yet:
 ```
 git init
 git add -A
-git commit -m "HSC Fund platform"
+git commit -m "HSC Endowment platform"
 git branch -M main
 git remote add origin <your-empty-github-repo-url>
 git push -u origin main

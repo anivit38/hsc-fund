@@ -80,6 +80,13 @@ export function signup({ full_name, email, password }) {
       sleeve_id: null, // sleeves are just a reporting label now, not an access boundary — see policies.js
       grade: null,
       active: true,
+      // A self-signup account can log in (so it lands on a friendly "pending"
+      // screen) but is_member() in policies.js blocks it from reading or
+      // writing anything real until a CIO approves it from Members — the
+      // real control, not just a cosmetic "awaiting approval" banner. The
+      // auto-CIO address is pre-approved so there's always someone able to
+      // approve everyone else.
+      approved: autoCio,
       created_at: new Date().toISOString(),
       password_hash: hashPassword(password),
     };

@@ -34,7 +34,7 @@ export default function Layout({ title, actions, children }) {
       <aside className="sidebar">
         <div className="brand">
           <div className="discover">DISCOVER</div>
-          <div className="fund">HSC Fund</div>
+          <div className="fund">HSC Endowment</div>
           <div className="sub">Investment Club</div>
         </div>
 
