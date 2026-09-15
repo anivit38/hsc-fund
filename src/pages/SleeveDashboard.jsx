@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import Layout from '../components/Layout.jsx';
 import { useAuth } from '../AuthContext.jsx';
 import { useTable, useView } from '../hooks.js';
@@ -11,13 +12,22 @@ export default function SleeveDashboard() {
   const exposures = useView('exposures');
   const leaderboard = useView('leaderboard');
   const nameOf = (uid) => profiles.data?.find((p) => p.user_id === uid)?.full_name || uid;
-  const sleeveIndex = useView('sleeve_index', { sleeve_id: profile.sleeve_id });
-  const benchSeries = useView('benchmark_series', { ticker: sleeves.data?.find((s) => s.id === profile.sleeve_id)?.benchmark });
 
-  const sleeve = sleeves.data?.find((s) => s.id === profile.sleeve_id);
-  const positions = exposures.data?.positions.filter((p) => p.sleeve_id === profile.sleeve_id) || [];
+  // Sleeves are just a reporting grouping now — any PM can review any sleeve's
+  // book, not only "their own" (there's no such restriction on decisions
+  // anymore). Default to whichever sleeve is on the PM's profile, if any.
+  const [sleeveId, setSleeveId] = useState(profile.sleeve_id || '');
+  useEffect(() => {
+    if (!sleeveId && sleeves.data?.length) setSleeveId(sleeves.data[0].id);
+  }, [sleeveId, sleeves.data]);
+
+  const sleeveIndex = useView('sleeve_index', { sleeve_id: sleeveId });
+  const sleeve = sleeves.data?.find((s) => s.id === sleeveId);
+  const benchSeries = useView('benchmark_series', { ticker: sleeve?.benchmark });
+
+  const positions = exposures.data?.positions.filter((p) => p.sleeve_id === sleeveId) || [];
   const sleeveValue = positions.reduce((a, p) => a + p.market_value, 0);
-  const analysts = leaderboard.data?.filter((r) => r.pitches > 0).filter((r) => positions.some((p) => r.tickers?.includes(p.ticker)) || true) || [];
+  const analysts = leaderboard.data?.filter((r) => r.pitches > 0) || [];
 
   const benchIndexed = (points) => {
     if (!points?.length) return [];
@@ -26,7 +36,14 @@ export default function SleeveDashboard() {
   };
 
   return (
-    <Layout title={`${sleeve?.name || 'Sleeve'} Dashboard`}>
+    <Layout
+      title="Sleeve Dashboard"
+      actions={
+        <select value={sleeveId} onChange={(e) => setSleeveId(e.target.value)} style={{ width: 'auto' }}>
+          {sleeves.data?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      }
+    >
       <div className="grid grid-3" style={{ marginBottom: 16 }}>
         <div className="card stat-tile">
           <div className="label">Sleeve value</div>

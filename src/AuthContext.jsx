@@ -37,9 +37,9 @@ export function AuthProvider({ children }) {
     return profile;
   }, []);
 
-  const signup = useCallback(async (fullName, email, password, sleeveId) => {
+  const signup = useCallback(async (fullName, email, password) => {
     setError(null);
-    const { token, profile } = await api.signup(fullName, email, password, sleeveId);
+    const { token, profile } = await api.signup(fullName, email, password);
     setToken(token);
     setProfile(profile);
     return profile;

@@ -31,7 +31,6 @@ const VERDICTS = ['right_right', 'right_wrong', 'wrong_right', 'wrong_wrong'];
 
 export const profileOf = (s, uid) => (uid ? s.profiles.find((p) => p.user_id === uid) : null);
 const authRole = (s, uid) => profileOf(s, uid)?.role ?? null;
-const authSleeve = (s, uid) => profileOf(s, uid)?.sleeve_id ?? null;
 const isMember = (s, uid) => !!profileOf(s, uid)?.active;
 
 const blank = (v) => v == null || String(v).trim() === '';
@@ -74,6 +73,16 @@ function normalizePitch(row) {
     if (typeof out[c] === 'string') out[c] = out[c].trim();
   }
   return out;
+}
+
+// Sleeves are a reporting label, not an access boundary: everyone can pitch or
+// approve any asset class (restrictions are by role and by the fund's risk
+// limits, not by which sleeve someone happens to be tagged with — see
+// functions.js's risk engine for the actual limits). A pitch's sleeve_id is
+// therefore always derived from its ticker, never taken from — or checked
+// against — the analyst's or PM's own profile.
+export function sleeveForAssetClass(s, assetClass) {
+  return s.sleeves.find((sl) => sl.asset_classes.includes(assetClass)) ?? null;
 }
 
 function checkPitchConstraints(s, p) {
@@ -122,18 +131,22 @@ export function insert(uid, table, input) {
     const at = stamp(s);
 
     if (table === 'pitches') {
+      const sec = security(s, input.ticker);
       const row = normalizePitch({
         kind: 'entry', status: 'draft', catalyst: null, price_target: null, stop_price: null,
         horizon_months: null, conviction: null, suggested_wt_pct: null, pm_user_id: null,
         pm_note: null, pm_wt_pct: null, pm_decided_at: null, order_id: null, ...input,
+        // sleeve_id is always derived from the ticker, never from the analyst's
+        // own profile or whatever the client sent — see sleeveForAssetClass().
+        sleeve_id: sec ? sleeveForAssetClass(s, sec.asset_class)?.id ?? null : input.sleeve_id,
       });
       checkPitchConstraints(s, row);
-      // pitch_insert: own row, own sleeve, starts as draft, no overdue post-mortem.
+      // pitch_insert: own row, starts as draft, no overdue post-mortem. Any
+      // active analyst or PM can pitch any asset class — see sleeveForAssetClass.
       const ok =
         isMember(s, uid) &&
-        authRole(s, uid) !== 'advisor' &&
+        !['advisor'].includes(authRole(s, uid)) &&
         row.analyst_id === uid &&
-        row.sleeve_id === authSleeve(s, uid) &&
         row.status === 'draft' &&
         PITCH_PM.every((c) => row[c] == null) &&
         row.order_id == null &&
@@ -169,15 +182,20 @@ export function update(uid, table, id, patch) {
     const me = profileOf(s, uid);
     const at = stamp(s);
     const role = me?.role;
-    const sleeve = me?.sleeve_id ?? null;
 
     if (table === 'pitches') {
       const old = s.pitches.find((p) => p.id === id);
       if (!old || !canSeePitch(s, uid, old)) throw noRowsError(table);
       const next = normalizePitch({ ...old, ...patch, id: old.id, created_at: old.created_at });
+      // sleeve_id always tracks the ticker, not whoever is editing/deciding it —
+      // re-derive rather than trust the patch (see sleeveForAssetClass above).
+      const sec = security(s, next.ticker);
+      next.sleeve_id = sec ? sleeveForAssetClass(s, sec.asset_class)?.id ?? next.sleeve_id : next.sleeve_id;
 
       const authorUsing = old.analyst_id === uid && old.status === 'draft';
-      const pmUsing = role === 'pm' && old.sleeve_id === sleeve && old.status === 'submitted' && old.analyst_id !== uid;
+      // Any PM may decide on any submitted pitch — sleeves don't gate this —
+      // except their own (see analyst_id !== uid below): no self-approval.
+      const pmUsing = role === 'pm' && old.status === 'submitted' && old.analyst_id !== uid;
       if (!isMember(s, uid) || (!authorUsing && !pmUsing)) throw noRowsError(table);
 
       // BEFORE UPDATE trigger: the server stamps lifecycle timestamps, not the client.
@@ -194,12 +212,10 @@ export function update(uid, table, id, patch) {
       const authorCheck =
         next.analyst_id === uid &&
         ['draft', 'submitted'].includes(next.status) &&
-        next.sleeve_id === sleeve &&
         same(old, next, [...PITCH_PM, 'order_id']) &&
         (next.status === 'draft' || !pendingPostMortem(s, uid));
       const pmCheck =
         role === 'pm' &&
-        next.sleeve_id === sleeve &&
         next.analyst_id !== uid &&
         ['pm_approved', 'pm_rejected'].includes(next.status) &&
         next.pm_user_id === uid &&

@@ -41,9 +41,11 @@ export default function PitchDetail() {
   if (!pitch) return <Layout title="Pitch not found"><div className="empty">This pitch doesn't exist, or you don't have access to it.</div></Layout>;
 
   const isMine = pitch.analyst_id === profile.user_id;
-  const isMyPM = profile.role === 'pm' && profile.sleeve_id === pitch.sleeve_id && !isMine;
+  // Any PM can decide on any submitted pitch fund-wide — sleeves don't gate
+  // this, only self-approval does (never your own pitch).
+  const isPM = profile.role === 'pm' && !isMine;
   const canSubmit = isMine && pitch.status === 'draft';
-  const canDecide = isMyPM && pitch.status === 'submitted';
+  const canDecide = isPM && pitch.status === 'submitted';
   const canExecute = profile.role === 'cio' && pitch.status === 'pm_approved';
 
   const run = async (fn) => {

@@ -126,12 +126,6 @@ app.post(
   handle((req) => signup(req.body || {})),
 );
 
-// Public (no auth needed yet) so the signup form can offer a sleeve to join.
-app.get(
-  '/api/public/sleeves',
-  handle(() => (getState()?.sleeves || []).map(({ id, name, benchmark }) => ({ id, name, benchmark }))),
-);
-
 app.get(
   '/api/auth/me',
   requireAuth,

@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext.jsx';
-import { api } from '../api.js';
 
 export default function Login() {
   const { login, signup } = useAuth();
@@ -10,14 +9,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [sleeveId, setSleeveId] = useState('');
-  const [sleeves, setSleeves] = useState([]);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    api.publicSleeves().then(setSleeves).catch(() => {});
-  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -25,7 +18,7 @@ export default function Login() {
     setError(null);
     try {
       if (mode === 'signup') {
-        await signup(fullName, email, password, sleeveId || null);
+        await signup(fullName, email, password);
       } else {
         await login(email, password);
       }
@@ -79,17 +72,12 @@ export default function Login() {
             {mode === 'signup' && <div className="hint">At least 8 characters.</div>}
           </div>
           {mode === 'signup' && (
-            <div className="field">
-              <label>Which sleeve do you want to join?</label>
-              <select value={sleeveId} onChange={(e) => setSleeveId(e.target.value)}>
-                <option value="">Not sure yet — I'll ask the CIO</option>
-                {sleeves.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <div className="hint">You'll join as an Analyst. A Portfolio Manager or CIO can change your role or sleeve later.</div>
+            <div className="field hint" style={{ marginBottom: 0 }}>
+              You'll join as an Analyst and can pitch any asset class right away — a Portfolio Manager or the CIO can change your role later from Members.
             </div>
           )}
-          {error && <div className="banner banner-error">{error}</div>}
-          <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={busy} type="submit">
+          {error && <div className="banner banner-error" style={{ marginTop: 14 }}>{error}</div>}
+          <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 16 }} disabled={busy} type="submit">
             {busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Sign in'}
           </button>
         </form>

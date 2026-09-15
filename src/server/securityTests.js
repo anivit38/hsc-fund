@@ -84,8 +84,8 @@ export const SECURITY_TESTS = [
     run: (c) => c.update('pitches', pitchBy('QQQ', 'submitted').id, { status: 'pm_approved', pm_user_id: c.uid, pm_wt_pct: 5, pm_note: 'LGTM' }),
   },
   {
-    id: 'pm-other-sleeve', as: 'u-noah', expect: 'blocked', area: 'Pitches',
-    title: "PM approves a pitch in another PM's sleeve",
+    id: 'pm-cross-sleeve-approve', as: 'u-noah', expect: 'allowed', area: 'Pitches',
+    title: "PM approves a pitch outside their own sleeve (sleeves don't gate this)",
     run: (c) => c.update('pitches', pitchBy('AMZN', 'submitted').id, { status: 'pm_approved', pm_user_id: c.uid, pm_wt_pct: 5, pm_note: 'ok' }),
   },
   {
@@ -114,9 +114,9 @@ export const SECURITY_TESTS = [
     run: (c) => c.update('pitches', pitchBy('AMZN', 'submitted').id, { status: 'pm_approved', pm_user_id: c.uid, pm_wt_pct: 5, pm_note: 'Approved for IC' }),
   },
   {
-    id: 'pitch-other-sleeve', as: 'u-mia', expect: 'blocked', area: 'Pitches',
-    title: 'Equities analyst pitches into the Real Estate sleeve',
-    run: (c) => c.insert('pitches', { analyst_id: c.uid, sleeve_id: 'sl-re', ticker: 'RE-BONDI', side: 'buy', kind: 'entry', thesis: 'x', falsifier: 'y' }),
+    id: 'pitch-any-asset-class', as: 'u-mia', expect: 'allowed', area: 'Pitches',
+    title: 'Any analyst can pitch any asset class (sleeves are a label, not a boundary)',
+    run: (c) => c.insert('pitches', { analyst_id: c.uid, ticker: 'RE-BONDI', side: 'buy', kind: 'entry', thesis: 'x', falsifier: 'y' }),
   },
   {
     id: 'pitch-as-other', as: 'u-mia', expect: 'blocked', area: 'Pitches',

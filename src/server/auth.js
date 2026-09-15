@@ -1,8 +1,10 @@
 // Authentication. Self-signup is open (any email works — there's no school-
-// domain check) but a new account always starts as an 'analyst' in whatever
-// sleeve they pick; only an existing CIO can promote someone to pm/cio/advisor
-// from the Members screen. Passwords are bcrypt-hashed on the profile row;
-// login/signup exchange credentials for a short-lived JWT signed with
+// domain check) but a new account always starts as an 'analyst'; only an
+// existing CIO can promote someone to pm/cio/advisor from the Members screen —
+// with one carve-out: the address below is auto-provisioned as CIO the moment
+// it signs up, so the club always has a first CIO without anyone needing
+// service-key/SQL-editor access. Passwords are bcrypt-hashed on the profile
+// row; login/signup exchange credentials for a short-lived JWT signed with
 // JWT_SECRET. Every subsequent request carries that JWT and the server
 // re-derives the caller's uid (and, from there, their role) from it — the token
 // is never trusted to say who it is except via its verified signature.
@@ -14,6 +16,14 @@ import { ApiError } from './errors.js';
 
 const SECRET = process.env.JWT_SECRET || 'dev-only-insecure-secret-change-me';
 const EXPIRES_IN = '12h';
+
+// Comma-separated list of emails that become CIO automatically on signup,
+// instead of the usual default 'analyst'. Configurable via env so this isn't
+// hardcoded to one school forever; falls back to the address that was asked for.
+const AUTO_CIO_EMAILS = (process.env.AUTO_CIO_EMAILS || '039443@hsc.on.ca')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
   console.warn('[auth] JWT_SECRET is not set — using an insecure default. Set it in your Render environment.');
@@ -47,7 +57,7 @@ export function login(email, password) {
   return { token: issueToken(profile.user_id), profile: publicProfile(profile) };
 }
 
-export function signup({ full_name, email, password, sleeve_id }) {
+export function signup({ full_name, email, password }) {
   return tx((s) => {
     const name = String(full_name || '').trim();
     const normalized = String(email || '').trim().toLowerCase();
@@ -57,15 +67,17 @@ export function signup({ full_name, email, password, sleeve_id }) {
     if (s.profiles.some((p) => p.email?.toLowerCase() === normalized)) {
       throw new ApiError(409, 'An account with that email already exists — try signing in instead');
     }
-    const sleeve = sleeve_id ? s.sleeves.find((x) => x.id === sleeve_id) : null;
-    if (sleeve_id && !sleeve) throw new ApiError(400, 'Unknown sleeve');
 
+    const autoCio = AUTO_CIO_EMAILS.includes(normalized);
     const profile = {
       user_id: `u-${uuid().slice(0, 8)}`,
       full_name: name,
       email: normalized,
-      role: 'analyst', // self-signup only ever creates an analyst; a CIO promotes from Members
-      sleeve_id: sleeve?.id ?? null,
+      // Self-signup only ever creates an analyst — a CIO promotes from
+      // Members — except the reserved auto-CIO address(es) above, so the
+      // club always has a first CIO to bootstrap everything else from.
+      role: autoCio ? 'cio' : 'analyst',
+      sleeve_id: null, // sleeves are just a reporting label now, not an access boundary — see policies.js
       grade: null,
       active: true,
       created_at: new Date().toISOString(),
@@ -73,7 +85,15 @@ export function signup({ full_name, email, password, sleeve_id }) {
     };
     s.profiles.push(profile);
     s.seq.audit += 1;
-    s.audit_log.push({ id: s.seq.audit, actor_id: profile.user_id, action: 'member.signed_up', entity: 'profiles', entity_id: null, payload: { user_id: profile.user_id, sleeve_id: profile.sleeve_id }, at: profile.created_at });
+    s.audit_log.push({
+      id: s.seq.audit,
+      actor_id: profile.user_id,
+      action: autoCio ? 'member.signed_up_as_cio' : 'member.signed_up',
+      entity: 'profiles',
+      entity_id: null,
+      payload: { user_id: profile.user_id, role: profile.role },
+      at: profile.created_at,
+    });
     return { token: issueToken(profile.user_id), profile: publicProfile(profile) };
   });
 }

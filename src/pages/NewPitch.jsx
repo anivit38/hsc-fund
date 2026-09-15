@@ -15,44 +15,52 @@ export default function NewPitch() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const securities = useTable('securities');
-  const sleeves = useTable('sleeves');
   const pending = useView('pending_post_mortem', { user_id: profile.user_id });
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [saved, setSaved] = useState(null);
 
-  const mySleeve = sleeves.data?.find((s) => s.id === profile.sleeve_id);
-  const universe = useMemo(
-    () => (securities.data || []).filter((s) => mySleeve?.asset_classes.includes(s.asset_class)).sort((a, b) => a.ticker.localeCompare(b.ticker)),
-    [securities.data, mySleeve],
-  );
+  // Every member can pitch any asset class in the fund's universe — sleeves
+  // are just a reporting label the server derives from the ticker, not a
+  // restriction on who can pitch what.
+  const byClass = useMemo(() => {
+    const groups = new Map();
+    for (const s of securities.data || []) {
+      if (s.status !== 'active') continue;
+      const list = groups.get(s.asset_class) || [];
+      list.push(s);
+      groups.set(s.asset_class, list);
+    }
+    for (const list of groups.values()) list.sort((a, b) => a.ticker.localeCompare(b.ticker));
+    return [...groups.entries()].sort((a, b) => (ASSET_CLASS_LABEL[a[0]] || a[0]).localeCompare(ASSET_CLASS_LABEL[b[0]] || b[0]));
+  }, [securities.data]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const side = form.kind === 'entry' || form.kind === 'add' ? 'buy' : 'sell';
 
   const blocked = pending.data;
 
+  const payload = () => ({
+    analyst_id: profile.user_id,
+    kind: form.kind,
+    ticker: form.ticker,
+    side,
+    thesis: form.thesis,
+    catalyst: form.catalyst || null,
+    falsifier: form.falsifier,
+    price_target: form.price_target || null,
+    stop_price: form.stop_price || null,
+    horizon_months: form.horizon_months || null,
+    conviction: form.conviction || null,
+    suggested_wt_pct: form.suggested_wt_pct || null,
+  });
+
   const saveDraft = async () => {
     setBusy(true);
     setErr(null);
     try {
-      const row = await api.insert('pitches', {
-        analyst_id: profile.user_id,
-        sleeve_id: profile.sleeve_id,
-        kind: form.kind,
-        ticker: form.ticker,
-        side,
-        thesis: form.thesis,
-        catalyst: form.catalyst || null,
-        falsifier: form.falsifier,
-        price_target: form.price_target || null,
-        stop_price: form.stop_price || null,
-        horizon_months: form.horizon_months || null,
-        conviction: form.conviction || null,
-        suggested_wt_pct: form.suggested_wt_pct || null,
-      });
-      setSaved(row);
+      setSaved(await api.insert('pitches', payload()));
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -64,12 +72,7 @@ export default function NewPitch() {
     setBusy(true);
     setErr(null);
     try {
-      const row = saved || (await api.insert('pitches', {
-        analyst_id: profile.user_id, sleeve_id: profile.sleeve_id, kind: form.kind, ticker: form.ticker, side,
-        thesis: form.thesis, catalyst: form.catalyst || null, falsifier: form.falsifier,
-        price_target: form.price_target || null, stop_price: form.stop_price || null,
-        horizon_months: form.horizon_months || null, conviction: form.conviction || null, suggested_wt_pct: form.suggested_wt_pct || null,
-      }));
+      const row = saved || (await api.insert('pitches', payload()));
       await api.update('pitches', row.id, { status: 'submitted' });
       navigate(`/pitches/${row.id}`);
     } catch (e) {
@@ -101,11 +104,15 @@ export default function NewPitch() {
             </select>
           </div>
           <div className="field">
-            <label className="required">Ticker ({mySleeve?.name})</label>
+            <label className="required">Ticker — any asset class</label>
             <select value={form.ticker} onChange={set('ticker')}>
               <option value="">Select…</option>
-              {universe.map((s) => (
-                <option key={s.ticker} value={s.ticker}>{s.ticker} — {s.name}</option>
+              {byClass.map(([cls, list]) => (
+                <optgroup key={cls} label={ASSET_CLASS_LABEL[cls] || cls}>
+                  {list.map((s) => (
+                    <option key={s.ticker} value={s.ticker}>{s.ticker} — {s.name}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>

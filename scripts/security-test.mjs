@@ -6,6 +6,7 @@ import { getState } from '../src/server/store.js';
 import { seedDatabase } from '../src/server/seed.js';
 import { runSecurityTests } from '../src/server/securityTests.js';
 import { createClient } from '../src/server/client.js';
+import { signup } from '../src/server/auth.js';
 import * as V from '../src/server/views.js';
 
 let failures = 0;
@@ -25,6 +26,15 @@ console.log('');
 
 console.log('— Security suite —');
 for (const r of runSecurityTests()) check(`[${r.as}] ${r.title}`, r.pass, `expected ${r.expect}, got ${r.outcome}: ${r.message}`);
+
+console.log('\n— Signup —');
+const cioSignup = signup({ full_name: 'Auto CIO', email: '039443@hsc.on.ca', password: 'testpass1' });
+check('Reserved address auto-provisions as CIO', cioSignup.profile.role === 'cio');
+const analystSignup = signup({ full_name: 'Random Person', email: 'whoever@anything.xyz', password: 'testpass1' });
+check('Any other email signs up as analyst with no sleeve', analystSignup.profile.role === 'analyst' && analystSignup.profile.sleeve_id === null);
+let dupe = false;
+try { signup({ full_name: 'Dup', email: 'whoever@anything.xyz', password: 'testpass1' }); } catch { dupe = true; }
+check('Duplicate email is rejected', dupe);
 
 console.log('\n— Lifecycle —');
 const mia = createClient('u-mia');
@@ -58,6 +68,21 @@ const order = getState().orders.find((o) => o.id === res.order.id);
 check(`Next session (${adv.date}) fills the order at the open`, order.status === 'filled');
 check('Book shows the new position', V.book(getState()).some((r) => r.ticker === 'JNJ'));
 check('NAV snapshot written for the new session', getState().nav_snapshots.at(-1).snap_date === adv.date);
+
+// mia is historically tagged sl-eq, but sleeves no longer gate anything — she
+// should be able to pitch a commodity just as freely as an equity.
+const crossClass = mia.insert('pitches', { analyst_id: 'u-mia', ticker: 'DBA', side: 'buy', kind: 'entry', thesis: 'Agriculture diversifier', falsifier: 'x' });
+check('Analyst can pitch outside their historical sleeve/asset class', crossClass.sleeve_id === 'sl-alt');
+let crossApprove;
+try {
+  crossApprove = getState().profiles.find((p) => p.user_id === 'u-liam'); // PM of Real Estate, not Alternatives
+  const liam = createClient('u-liam');
+  const submitted = mia.update('pitches', crossClass.id, { status: 'submitted', falsifier: 'Grain prices fall 20%', price_target: 30, stop_price: 22, suggested_wt_pct: 4 });
+  crossApprove = liam.update('pitches', submitted.id, { status: 'pm_approved', pm_user_id: 'u-liam', pm_wt_pct: 4, pm_note: 'Approved cross-sleeve' });
+} catch (e) {
+  crossApprove = { error: e.message };
+}
+check("A PM from a different sleeve can approve it (sleeves don't gate decisions)", crossApprove?.status === 'pm_approved', crossApprove?.error);
 
 console.log(`\n${failures ? `${failures} FAILED` : 'All checks passed'}`);
 process.exit(failures ? 1 : 0);

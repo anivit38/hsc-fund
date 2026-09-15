@@ -256,7 +256,8 @@ export function manage_member(uid, { user_id, role, sleeve_id, active } = {}) {
       active: active ?? target.active,
     };
     if (!ROLES.includes(next.role)) throw new ApiError(400, `Unknown role ${next.role}`);
-    if ((next.role === 'pm' || next.role === 'analyst') && !next.sleeve_id) throw new ApiError(400, `A ${next.role} must belong to a sleeve`);
+    // Sleeve is just an optional "primary sleeve" label now (who a PM's home
+    // dashboard defaults to) — not a requirement, and not an access boundary.
     if (next.role === 'cio' || next.role === 'advisor') next.sleeve_id = null;
     const activeCios = s.profiles.filter((p) => p.role === 'cio' && p.active && p.user_id !== user_id);
     if (target.role === 'cio' && (next.role !== 'cio' || !next.active) && activeCios.length === 0) {
@@ -294,7 +295,6 @@ export function create_member(uid, { full_name, email, role, sleeve_id, grade, p
     const normalized = String(email).trim().toLowerCase();
     if (s.profiles.some((p) => p.email?.toLowerCase() === normalized)) throw new ApiError(409, 'A member with that email already exists');
     if (!ROLES.includes(role)) throw new ApiError(400, `Unknown role ${role}`);
-    if ((role === 'pm' || role === 'analyst') && !sleeve_id) throw new ApiError(400, `A ${role} must belong to a sleeve`);
     const at = stamp(s);
     const profile = {
       user_id: `u-${uuid().slice(0, 8)}`,
