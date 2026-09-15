@@ -6,9 +6,9 @@ export default function PendingApproval() {
   return (
     <div className="login-shell">
       <div className="login-card" style={{ textAlign: 'center' }}>
-        <div className="login-brand">
-          <div className="discover">DISCOVER</div>
-          <div className="fund">HSC Endowment</div>
+        <div className="login-brand" style={{ marginBottom: 22 }}>
+          <div className="brand-badge">H</div>
+          <div className="fund">HSC <span>Endowment</span></div>
         </div>
         <div style={{ fontSize: 34, marginBottom: 6 }}>⏳</div>
         <h2 style={{ margin: '0 0 8px', fontSize: 18 }}>You're almost in, {profile?.full_name?.split(' ')[0]}</h2>

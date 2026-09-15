@@ -30,7 +30,7 @@ export default function ICAgenda() {
 
   return (
     <Layout
-      title="IC Agenda"
+      title="To Approve"
       actions={<button className="btn btn-sm" disabled={busy} onClick={advance}>Advance to next session (demo)</button>}
     >
       {err && <div className="banner banner-error">{err}</div>}

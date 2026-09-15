@@ -227,6 +227,35 @@ export function close_position(uid, { ticker, note } = {}) {
   });
 }
 
+// Direct CIO trading, outside the pitch process entirely — for rebalancing,
+// topping up an existing conviction, or trimming without waiting on a fresh
+// pitch. Goes through the exact same risk engine and order/fill pipeline as
+// an executed pitch (createOrder → run_fills at the next open); it's simply
+// not attached to a pitch_id. Every governance rule that isn't specific to
+// the pitch workflow still applies: risk limits, next-open fills, audit log.
+export function quick_trade(uid, { ticker, side, target_wt_pct, qty, note, risk_override = false, override_note } = {}) {
+  return tx((s) => {
+    const me = resolveCaller(s, uid);
+    requireRole(me, 'cio');
+    if (!ticker) throw new ApiError(400, 'ticker is required');
+    if (side !== 'buy' && side !== 'sell') throw new ApiError(400, 'side must be "buy" or "sell"');
+    if (target_wt_pct == null && qty == null) throw new ApiError(400, 'Provide either a target weight (%) or an exact quantity');
+    const kind = side === 'buy' ? 'entry' : 'trim';
+    const at = stamp(s);
+    const { order, preview } = createOrder(s, {
+      ticker, side, kind, target_wt_pct: target_wt_pct ?? null, qty: qty ?? null,
+      actor: me.user_id, risk_override, override_note, at,
+    });
+    order.note = note ? String(note).trim() : null;
+    audit(
+      s, me.user_id, order.risk_override ? 'trade.quick_executed_with_override' : 'trade.quick_executed', 'orders', order.id,
+      { ticker, side, qty: order.qty, ref_price: order.ref_price, note: order.note, breaches: order.breaches },
+      at,
+    );
+    return { order, preview };
+  });
+}
+
 export function cancel_order(uid, { order_id } = {}) {
   return tx((s) => {
     const me = resolveCaller(s, uid);
@@ -599,6 +628,7 @@ export const FUNCTIONS = {
   execute_pitch,
   shelve_pitch,
   close_position,
+  quick_trade,
   cancel_order,
   manage_member,
   reset_member_password,

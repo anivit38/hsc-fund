@@ -96,5 +96,11 @@ try {
 }
 check("A PM from a different sleeve can approve it (sleeves don't gate decisions)", crossApprove?.status === 'pm_approved', crossApprove?.error);
 
+// CIO can trade directly, outside the pitch process entirely.
+const qt = alex.invoke('quick_trade', { ticker: 'TLT', side: 'buy', target_wt_pct: 5, note: 'Adding Treasury duration directly' });
+check('CIO quick-trades a position directly (no pitch involved)', qt.order.status === 'pending_open' && qt.order.pitch_id === null);
+const qtAdv = alex.invoke('advance_session');
+check(`Quick trade fills at the next session's open (${qtAdv.date})`, getState().orders.find((o) => o.id === qt.order.id)?.status === 'filled');
+
 console.log(`\n${failures ? `${failures} FAILED` : 'All checks passed'}`);
 process.exit(failures ? 1 : 0);

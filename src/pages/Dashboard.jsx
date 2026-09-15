@@ -20,9 +20,12 @@ export default function Dashboard() {
     return points.map((p) => ({ date: p.date, value: (p.value / base) * 100 }));
   };
 
+  const navSeriesData = indexed(navSeries.data);
+  const oneDayDelta = navSeriesData.length > 1 ? navSeriesData.at(-1).value - navSeriesData.at(-2).value : 0;
+
   return (
     <Layout
-      title="Fund Dashboard"
+      title="Dashboard"
       actions={
         <span className={`stale-badge${stale ? ' stale' : ''}`}>
           <span className="dot" />
@@ -35,40 +38,30 @@ export default function Dashboard() {
         <div className="empty">Loading…</div>
       ) : (
         <>
-          <div className="grid grid-4" style={{ marginBottom: 16 }}>
-            <div className="card stat-tile">
-              <div className="label">Net Asset Value</div>
-              <div className="value">{money(s.nav)}</div>
-              <div className={`delta ${s.inception_return_pct >= 0 ? 'pos' : 'neg'}`}>{pct(s.inception_return_pct)} since inception</div>
+          <div className="hero">
+            <div>
+              <div className="hero-figure">{money(s.nav)}</div>
+              <div className="hero-sub">Net Asset Value · as of {s.as_of}</div>
+              <div className={`hero-delta ${s.inception_return_pct >= 0 ? 'pos' : 'neg'}`}>
+                {pct(s.inception_return_pct)} since inception
+              </div>
+              <div className="hero-statrow">
+                <div className="hero-stat"><b>{s.position_count}</b><span>positions</span></div>
+                <div className="hero-stat"><b>{pctAbs(s.cash_pct)}</b><span>cash</span></div>
+                <div className="hero-stat"><b>{pctAbs(s.invested_pct)}</b><span>invested</span></div>
+              </div>
             </div>
-            <div className="card stat-tile">
-              <div className="label">Cash</div>
-              <div className="value">{money(s.cash)}</div>
-              <div className="delta muted">{pctAbs(s.cash_pct)} of NAV</div>
-            </div>
-            <div className="card stat-tile">
-              <div className="label">Invested</div>
-              <div className="value">{pctAbs(s.invested_pct)}</div>
-              <div className="delta muted">{money(s.invested)}</div>
-            </div>
-            <div className="card stat-tile">
-              <div className="label">Positions</div>
-              <div className="value">{s.position_count}</div>
-              <div className="delta muted">target 12–20 names</div>
-            </div>
-          </div>
-
-          <div className="card" style={{ marginBottom: 16 }}>
-            <div className="card-header">
-              <h2>NAV vs S&amp;P 500 (SPY), indexed to 100 at inception</h2>
-              <span className="muted">as of {s.as_of}</span>
-            </div>
-            <div className="card-pad">
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                <span className="muted" style={{ fontSize: 12.5, fontWeight: 600 }}>NAV vs S&amp;P 500, indexed to 100 at inception</span>
+                <span className={`badge ${oneDayDelta >= 0 ? 'badge-green' : 'badge-red'}`}>{oneDayDelta >= 0 ? '▲' : '▼'} {Math.abs(oneDayDelta).toFixed(2)} today</span>
+              </div>
               <LineChart
+                height={220}
                 formatValue={(v) => v.toFixed(1)}
                 series={[
-                  { id: 'nav', label: 'HSC Endowment', color: 'var(--purple-500)', points: indexed(navSeries.data) },
-                  { id: 'spy', label: 'SPY (benchmark)', color: 'var(--green-500)', points: indexed(benchSeries.data) },
+                  { id: 'nav', label: 'HSC Endowment', color: 'var(--ink)', points: navSeriesData, area: true },
+                  { id: 'spy', label: 'SPY (benchmark)', color: 'var(--brass)', points: indexed(benchSeries.data) },
                 ]}
               />
             </div>

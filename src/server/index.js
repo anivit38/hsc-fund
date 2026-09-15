@@ -11,7 +11,20 @@ import cors from 'cors';
 import { setStorageAdapter } from './store.js';
 import { createFileStorage } from './nodeStorage.js';
 
-setStorageAdapter(createFileStorage());
+// Durable storage: a real Postgres database (Neon, Supabase, RDS, ...) when
+// DATABASE_URL is set — survives Render restarts and idle-sleep cycles, unlike
+// a plain file on Render's ephemeral disk. Falls back to a local JSON file for
+// local development when no DATABASE_URL is configured.
+let storageDescription;
+if (process.env.DATABASE_URL) {
+  const { createPgStorage } = await import('./pgStorage.js');
+  setStorageAdapter(createPgStorage());
+  storageDescription = 'Postgres (DATABASE_URL)';
+} else {
+  const fileStorage = createFileStorage();
+  setStorageAdapter(fileStorage);
+  storageDescription = `file (${fileStorage.file}) — NOT durable on Render's free tier; set DATABASE_URL for a real database`;
+}
 
 const { bootDatabase } = await import('./seed.js');
 const { getState } = await import('./store.js');
@@ -29,20 +42,21 @@ const LIVE_MARKET = process.env.LIVE_MARKET !== 'false';
 const ORIGIN = process.env.CORS_ORIGIN; // e.g. https://your-app.web.app — comma-separated for multiple
 
 console.log(`[boot] live market data: ${LIVE_MARKET ? 'on (Yahoo Finance)' : 'off (simulated only)'}`);
-console.log(`[boot] database file: ${createFileStorage().file}`);
+console.log(`[boot] storage: ${storageDescription}`);
+
+// Load (or seed) the database first, so we know the real inception date and
+// ticker list before asking Yahoo for anything.
+await bootDatabase();
+console.log(`[boot] database ready at session ${getState().clock.date}, NAV $${Math.round(V.nav(getState())).toLocaleString()}`);
 
 if (LIVE_MARKET) {
   const s0 = getState();
-  const liveTickers = (s0?.securities ?? []).filter((x) => x.pricing === 'market').map((x) => x.ticker);
-  if (liveTickers.length) {
-    // We don't know the seed's inception date yet on a cold boot, so pull a
-    // generous window; refreshLiveHistory just merges whatever it finds.
-    await refreshLiveHistory(liveTickers, '2026-01-01').catch((e) => console.warn('[live-market] initial refresh failed', e));
-  }
+  const liveTickers = s0.securities.filter((x) => x.pricing === 'market').map((x) => x.ticker);
+  await refreshLiveHistory(liveTickers, s0.fund_config.inception_date)
+    .then(({ ok, failed }) => console.log(`[boot] live history: ${ok.length} ok, ${failed.length} fell back to the simulator`))
+    .catch((e) => console.warn('[live-market] initial refresh failed', e));
+  catchUp(lastCompletedSession()); // re-run today's fills/NAV now that live prices are in
 }
-
-bootDatabase();
-console.log(`[boot] database ready at session ${getState().clock.date}, NAV $${Math.round(V.nav(getState())).toLocaleString()}`);
 
 // Re-pull live history and re-run the scheduler periodically so the fund keeps
 // moving forward on its own between requests, exactly like the pg_cron jobs in

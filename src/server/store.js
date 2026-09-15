@@ -76,6 +76,22 @@ export function loadPersisted() {
   }
 }
 
+/**
+ * Same as loadPersisted(), but await-safe for an async backend (e.g.
+ * pgStorage.js) as well as the synchronous file/localStorage adapters —
+ * `await` on a plain value just resolves immediately. Use this at boot.
+ */
+export async function loadPersistedAsync() {
+  if (!storage) return null;
+  try {
+    const raw = await storage.getItem(DB_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    console.warn('Could not load persisted database:', e.message);
+    return null;
+  }
+}
+
 export function clearPersisted() {
   storage?.removeItem(DB_KEY);
 }

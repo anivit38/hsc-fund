@@ -1,7 +1,9 @@
-# Render Blueprint for the HSC Fund API. In the Render dashboard: New →
+# Render Blueprint for the HSC Endowment API. In the Render dashboard: New →
 # Blueprint → point at this repo, and Render reads this file automatically.
-# See DEPLOY.md for the full walkthrough (including the one-time env vars you
-# must fill in after the service is created).
+# See DEPLOY.md for the full walkthrough, including creating the free Neon
+# Postgres database that DATABASE_URL points at (Render's own disk is
+# ephemeral — it resets on every redeploy and every idle-sleep wake-up, so a
+# real database is required for the data to actually stick).
 services:
   - type: web
     name: hsc-fund-api
@@ -21,9 +23,5 @@ services:
         generateValue: true # Render generates a strong random secret for you
       - key: CORS_ORIGIN
         value: "" # fill in with your Firebase Hosting URL(s), comma-separated, after deploying the frontend
-      - key: DB_FILE
-        value: /var/data/db.json
-    disk:
-      name: hsc-fund-data
-      mountPath: /var/data
-      sizeGB: 1 # persistent disk so the fund's history survives restarts/redeploys — requires a paid plan; see DEPLOY.md for the free-tier alternative
+      - key: DATABASE_URL
+        sync: false # paste your Neon (or other Postgres) connection string here manually — see DEPLOY.md

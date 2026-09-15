@@ -2,7 +2,7 @@
 // replayed session by session up to today, with a scripted set of IC decisions
 // applied along the way through the same order/fill/NAV engine as live use.
 
-import { getState, replaceState, tx, batch, uuid, loadPersisted } from './store.js';
+import { getState, replaceState, tx, batch, uuid, loadPersistedAsync } from './store.js';
 import { FUND_CONFIG, SLEEVES, PROFILES, SECURITIES } from './universe.js';
 import { CRON_SECRET, run_nav, catchUp, previewTrade, audit, generate_letter } from './functions.js';
 import { lastCompletedSession, previousMonth } from './calendar.js';
@@ -233,8 +233,8 @@ function seedCurrentActivity() {
   });
 }
 
-export function bootDatabase() {
-  const saved = loadPersisted();
+export async function bootDatabase() {
+  const saved = await loadPersistedAsync();
   if (saved?.schema_version === SCHEMA_VERSION) {
     replaceState(saved);
     batch(() => catchUp());

@@ -64,6 +64,16 @@ export const SECURITY_TESTS = [
     run: (c) => c.invoke('execute_pitch', { pitch_id: pitchBy('LQD', 'pm_approved')?.id, role: 'cio', user_id: 'u-alex' }),
   },
   {
+    id: 'quick-trade-analyst', as: 'u-mia', expect: 'blocked', area: 'Edge Functions',
+    title: 'Analyst calls quick_trade directly',
+    run: (c) => c.invoke('quick_trade', { ticker: 'JNJ', side: 'buy', target_wt_pct: 4 }),
+  },
+  {
+    id: 'quick-trade-pm', as: 'u-priya', expect: 'blocked', area: 'Edge Functions',
+    title: 'PM calls quick_trade directly',
+    run: (c) => c.invoke('quick_trade', { ticker: 'JNJ', side: 'buy', target_wt_pct: 4 }),
+  },
+  {
     id: 'cron-no-secret', as: 'u-alex', expect: 'blocked', area: 'Edge Functions',
     title: 'Signed-in CIO triggers run_fills without the cron secret',
     run: (c) => c.invoke('run_fills', { date: getState().clock.date }),

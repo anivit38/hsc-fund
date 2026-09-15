@@ -18,7 +18,7 @@ export default function Book() {
   const classes = useMemo(() => [...new Set(data?.positions.map((p) => p.asset_class) || [])], [data]);
 
   return (
-    <Layout title="The Book">
+    <Layout title="Holdings">
       {loading ? (
         <div className="empty">Loading…</div>
       ) : (

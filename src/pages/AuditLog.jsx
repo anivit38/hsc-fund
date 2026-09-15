@@ -10,7 +10,7 @@ export default function AuditLog() {
   const sorted = [...(rows || [])].sort((a, b) => new Date(b.at) - new Date(a.at));
 
   return (
-    <Layout title="Audit Log">
+    <Layout title="History">
       <div className="card">
         <div className="table-wrap">
           <table>

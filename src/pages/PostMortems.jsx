@@ -39,7 +39,7 @@ export default function PostMortems() {
   };
 
   return (
-    <Layout title="My Post-Mortems">
+    <Layout title="Lessons Learned">
       {pending && (
         <div className="banner banner-warn">
           A post-mortem for <strong>{pending.ticker}</strong> is overdue — new pitch submissions are blocked until it's filed.

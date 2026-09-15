@@ -26,7 +26,7 @@ export default function PitchArchive() {
   }, [pitches, q, status, profiles]);
 
   return (
-    <Layout title="Pitch Archive">
+    <Layout title="All Pitches">
       <div className="card">
         <div className="card-header">
           <div style={{ display: 'flex', gap: 8 }}>

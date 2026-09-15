@@ -37,7 +37,7 @@ export default function SleeveDashboard() {
 
   return (
     <Layout
-      title="Sleeve Dashboard"
+      title="Sector View"
       actions={
         <select value={sleeveId} onChange={(e) => setSleeveId(e.target.value)} style={{ width: 'auto' }}>
           {sleeves.data?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}

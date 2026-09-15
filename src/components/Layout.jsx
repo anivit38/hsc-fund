@@ -1,25 +1,60 @@
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext.jsx';
-import { ROLE_LABEL } from '../format.js';
+import { getTheme, setTheme } from '../theme.js';
+import { api } from '../api.js';
 
-const ICONS = {
-  dashboard: '◧', book: '▤', archive: '⌕', leaderboard: '★',
-  newpitch: '✎', mine: '☰', postmortem: '☓',
-  review: '☑', sleeve: '◔',
-  agenda: '⚑', orders: '⧗', risk: '◎', members: '◉', audit: '☰', letters: '✉',
-};
-
-function Item({ to, icon, children }) {
+function Item({ to, letter, children }) {
   return (
-    <NavLink to={to} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-      <span className="dot" />
-      <span aria-hidden>{ICONS[icon]}</span>
-      <span>{children}</span>
+    <NavLink to={to} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} title={children}>
+      <span className="dot">{letter}</span>
+      <span className="nav-link-label">{children}</span>
     </NavLink>
   );
 }
 
-export default function Layout({ title, actions, children }) {
+function greeting(name) {
+  const h = new Date().getHours();
+  const time = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  return `${time}${name ? `, ${name}` : ''}`;
+}
+
+function ThemeToggle() {
+  const [mode, setMode] = useState(getTheme());
+  const cycle = () => {
+    const next = mode === 'dark' ? 'light' : mode === 'light' ? 'system' : 'dark';
+    setMode(next);
+    setTheme(next);
+  };
+  const icon = mode === 'dark' ? '🌙' : mode === 'light' ? '☀️' : '🖥️';
+  const label = mode === 'dark' ? 'Dark' : mode === 'light' ? 'Light' : 'Auto';
+  return (
+    <button className="pill-status" onClick={cycle} title={`Theme: ${label} (click to change)`} style={{ cursor: 'pointer' }}>
+      <span aria-hidden style={{ fontSize: 11 }}>{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+function LiveStatusPill() {
+  const [health, setHealth] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    api.health().then((h) => alive && setHealth(h)).catch(() => alive && setHealth(false));
+    const id = setInterval(() => api.health().then((h) => alive && setHealth(h)).catch(() => {}), 5 * 60 * 1000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+  const state = health === null ? 'stale' : health === false ? 'off' : health.live_market ? 'live' : 'stale';
+  const label = health === null ? 'Connecting…' : health === false ? 'Offline' : health.live_market ? 'Live quotes' : 'Simulated only';
+  return (
+    <span className="pill-status" data-state={state} title="Whether prices are being pulled from the real market right now">
+      <b />
+      {label}
+    </span>
+  );
+}
+
+export default function Layout({ title, subtitle, actions, children }) {
   const { profile, logout } = useAuth();
   const navigate = useNavigate();
   const role = profile?.role;
@@ -31,76 +66,92 @@ export default function Layout({ title, actions, children }) {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="discover">DISCOVER</div>
-          <div className="fund">HSC Endowment</div>
-          <div className="sub">Investment Club</div>
+      <header className="topbar">
+        <div className="brand-mark">
+          <div className="brand-badge">H</div>
+          <div className="brand-word">HSC <span>Endowment</span></div>
         </div>
-
-        <nav>
-          <div className="nav-section">
-            <div className="nav-label">Fund</div>
-            <Item to="/" icon="dashboard">Dashboard</Item>
-            <Item to="/book" icon="book">Book</Item>
-            <Item to="/pitches" icon="archive">Pitch Archive</Item>
-            <Item to="/leaderboard" icon="leaderboard">Leaderboard</Item>
-            <Item to="/letters" icon="letters">Letters</Item>
+        <div className="topbar-greet">{greeting(profile?.full_name?.split(' ')[0])}</div>
+        <div className="topbar-right">
+          <LiveStatusPill />
+          <ThemeToggle />
+          <div className="whoami">
+            <b>{profile?.full_name}</b>
+            <i>{ROLE_LABEL[role]}</i>
           </div>
+          <button className="btn btn-sm btn-ghost" onClick={signOut}>Sign out</button>
+        </div>
+      </header>
 
-          {role === 'analyst' && (
+      <div className="app-frame">
+        <aside className="sidebar">
+          <nav>
             <div className="nav-section">
-              <div className="nav-label">Analyst</div>
-              <Item to="/new-pitch" icon="newpitch">New Pitch</Item>
-              <Item to="/my-pitches" icon="mine">My Pitches</Item>
-              <Item to="/post-mortems" icon="postmortem">My Post-Mortems</Item>
+              <div className="nav-label">Fund</div>
+              <Item to="/" letter="D">Dashboard</Item>
+              <Item to="/book" letter="H">Holdings</Item>
+              <Item to="/pitches" letter="A">All Pitches</Item>
+              <Item to="/leaderboard" letter="L">Leaderboard</Item>
+              <Item to="/letters" letter="✉">Letters</Item>
             </div>
-          )}
 
-          {role === 'pm' && (
-            <div className="nav-section">
-              <div className="nav-label">Portfolio Manager</div>
-              <Item to="/review-queue" icon="review">Review Queue</Item>
-              <Item to="/sleeve" icon="sleeve">Sleeve Dashboard</Item>
-            </div>
-          )}
+            {role === 'analyst' && (
+              <div className="nav-section">
+                <div className="nav-label">Pitching</div>
+                <Item to="/new-pitch" letter="N">New Pitch</Item>
+                <Item to="/my-pitches" letter="M">My Pitches</Item>
+                <Item to="/post-mortems" letter="L">Lessons Learned</Item>
+              </div>
+            )}
 
-          {role === 'cio' && (
-            <div className="nav-section">
-              <div className="nav-label">CIO</div>
-              <Item to="/ic-agenda" icon="agenda">IC Agenda</Item>
-              <Item to="/orders" icon="orders">Pending Orders</Item>
-              <Item to="/risk" icon="risk">Risk Panel</Item>
-              <Item to="/members" icon="members">Members</Item>
-              <Item to="/audit" icon="audit">Audit Log</Item>
-            </div>
-          )}
+            {role === 'pm' && (
+              <div className="nav-section">
+                <div className="nav-label">Review</div>
+                <Item to="/review-queue" letter="R">Review Queue</Item>
+                <Item to="/sleeve" letter="S">Sector View</Item>
+              </div>
+            )}
 
-          {(role === 'cio' || role === 'advisor') && (
-            <div className="nav-section">
-              <div className="nav-label">Governance</div>
-              {role === 'advisor' && <Item to="/audit" icon="audit">Audit Log</Item>}
-            </div>
-          )}
-        </nav>
+            {role === 'cio' && (
+              <div className="nav-section">
+                <div className="nav-label">Committee</div>
+                <Item to="/ic-agenda" letter="T">To Approve</Item>
+                <Item to="/orders" letter="C">Control Center</Item>
+                <Item to="/risk" letter="R">Risk</Item>
+                <Item to="/members" letter="M">Members</Item>
+                <Item to="/audit" letter="H">History</Item>
+              </div>
+            )}
 
-        <div className="sidebar-footer">
-          <div className="who">
-            <div className="name">{profile?.full_name}</div>
-            <div className="role">{ROLE_LABEL[role]}{profile?.grade ? ` · ${profile.grade}` : ''}</div>
+            {role === 'advisor' && (
+              <div className="nav-section">
+                <div className="nav-label">Governance</div>
+                <Item to="/audit" letter="H">History</Item>
+              </div>
+            )}
+          </nav>
+
+          <div className="sidebar-footer">
+            <NavLink to="/account" className="nav-link" title="Account settings">
+              <span className="dot">⚙</span>
+              <span className="nav-link-label">Account settings</span>
+            </NavLink>
           </div>
-          <NavLink to="/account" className="nav-link" style={{ fontSize: 12.5 }}>Account settings</NavLink>
-          <button className="signout" onClick={signOut}>Sign out</button>
-        </div>
-      </aside>
+        </aside>
 
-      <div className="main">
-        <div className="topbar">
-          <h1>{title}</h1>
-          <div style={{ display: 'flex', gap: 8 }}>{actions}</div>
-        </div>
-        <div className="content">{children}</div>
+        <main className="main">
+          <div className="content">
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: subtitle ? 6 : 18, flexWrap: 'wrap' }}>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, margin: 0, letterSpacing: '-0.01em' }}>{title}</h1>
+              {actions && <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>{actions}</div>}
+            </div>
+            {subtitle && <p className="muted" style={{ fontSize: 13.5, marginBottom: 22, maxWidth: '62ch', lineHeight: 1.6 }}>{subtitle}</p>}
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );
 }
+
+const ROLE_LABEL = { analyst: 'Analyst', pm: 'Portfolio Manager', cio: 'Chief Investment Officer', advisor: 'Faculty Advisor' };

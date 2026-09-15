@@ -30,10 +30,10 @@ export default function Login() {
     <div className="login-shell">
       <div className="login-card">
         <div className="login-brand">
-          <div className="discover">DISCOVER</div>
-          <div className="fund">HSC Endowment</div>
-          <div className="sub">Investment Club mock fund</div>
+          <div className="brand-badge">H</div>
+          <div className="fund">HSC <span>Endowment</span></div>
         </div>
+        <p className="login-sub">Investment Club mock fund</p>
 
         <div className="tabs" style={{ marginBottom: 18 }}>
           <button type="button" className={`tab${mode === 'signin' ? ' active' : ''}`} onClick={() => { setMode('signin'); setError(null); }}>
