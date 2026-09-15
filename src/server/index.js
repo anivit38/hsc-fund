@@ -127,7 +127,11 @@ const handle = (fn) => async (req, res) => {
 
 app.get('/api/health', (req, res) => {
   const s = getState();
-  res.json({ ok: true, date: s?.clock?.date, nav: s ? Math.round(V.nav(s)) : null, live_market: LIVE_MARKET });
+  res.json({
+    ok: true, date: s?.clock?.date, nav: s ? Math.round(V.nav(s)) : null, live_market: LIVE_MARKET,
+    storage: process.env.DATABASE_URL ? 'postgres' : 'file',
+    member_count: s?.profiles?.length ?? null,
+  });
 });
 
 app.post(
