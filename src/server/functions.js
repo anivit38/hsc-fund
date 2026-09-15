@@ -305,6 +305,73 @@ export function manage_member(uid, { user_id, role, sleeve_id, active, approved 
   });
 }
 
+// The 12 founding members baked into src/server/universe.js for demo/seed
+// purposes — every id is fixed and hardcoded there, so this list is exact,
+// unlike anything created through signup or create_member (random ids).
+const SEED_MEMBER_IDS = new Set([
+  'u-alex', 'u-priya', 'u-liam', 'u-sofia', 'u-noah',
+  'u-mia', 'u-ethan', 'u-zara', 'u-lucas', 'u-oliver', 'u-chloe', 'u-carter',
+]);
+
+/**
+ * One-time cleanup for going from "demo" to "the real club": removes every
+ * seeded demo member and every bit of pitch/trading history (all of which
+ * originated from the demo), resets cash to the fund's starting capital, and
+ * rebuilds a flat NAV history from inception to today so the dashboard chart
+ * isn't empty. Leaves fund_config, sleeves, securities (the real universe and
+ * its real market-data history) and every real member account untouched.
+ */
+export function reset_demo_data(uid) {
+  return tx((s) => {
+    const me = resolveCaller(s, uid);
+    requireRole(me, 'cio');
+    if (SEED_MEMBER_IDS.has(me.user_id)) {
+      throw new ApiError(400, 'Sign in with your own real CIO account before resetting — a seeded demo account cannot perform this.');
+    }
+
+    const removedCount = s.profiles.filter((p) => SEED_MEMBER_IDS.has(p.user_id)).length;
+    s.profiles = s.profiles.filter((p) => !SEED_MEMBER_IDS.has(p.user_id));
+    for (const sl of s.sleeves) {
+      if (SEED_MEMBER_IDS.has(sl.pm_user_id)) sl.pm_user_id = null;
+    }
+
+    s.pitches = [];
+    s.pitch_comments = [];
+    s.orders = [];
+    s.fills = [];
+    s.post_mortems = [];
+    s.letters = [];
+    s.job_runs = [];
+    s.audit_log = [];
+    s.seq = { audit: 0, job: 0 };
+    s.position_pnl_daily = [];
+    s.nav_snapshots = [];
+    s.benchmarks = [];
+
+    const at = stamp(s);
+    s.cash_ledger = [{
+      id: uuid(), delta: s.fund_config.inception_capital, reason: 'inception', ref_id: null,
+      created_at: `${s.fund_config.inception_date}T09:00:00.000Z`,
+    }];
+
+    // Rebuild NAV/benchmark history for every real session from inception to
+    // today. There are no orders left to fill, so this just lays down a flat
+    // $1,000,000 line — the market-data cache (s.sessions/s.prices) is real
+    // and untouched, so this replays instantly against it.
+    let d = s.fund_config.inception_date;
+    while (d <= s.clock.date) {
+      if (isSession(d)) {
+        fillsForSession(s, d);
+        navForSession(s, d);
+      }
+      d = addDays(d, 1);
+    }
+
+    audit(s, me.user_id, 'platform.reset_demo_data', 'profiles', null, { removed_seed_members: removedCount }, at);
+    return { ok: true, removed_seed_members: removedCount, members_remaining: s.profiles.length };
+  });
+}
+
 export function reset_member_password(uid, { user_id, new_password } = {}) {
   return tx((s) => {
     const me = resolveCaller(s, uid);
@@ -631,6 +698,7 @@ export const FUNCTIONS = {
   quick_trade,
   cancel_order,
   manage_member,
+  reset_demo_data,
   reset_member_password,
   create_member,
   set_security_status,

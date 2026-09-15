@@ -102,5 +102,22 @@ check('CIO quick-trades a position directly (no pitch involved)', qt.order.statu
 const qtAdv = alex.invoke('advance_session');
 check(`Quick trade fills at the next session's open (${qtAdv.date})`, getState().orders.find((o) => o.id === qt.order.id)?.status === 'filled');
 
+console.log('\n— Reset demo data —');
+const realCio = signup({ full_name: 'Real Club President', email: 'club-president@realschool.edu', password: 'realclub2026' }).profile; // not the auto-CIO address
+alex.invoke('manage_member', { user_id: realCio.user_id, role: 'cio', approved: true });
+let resetBlocked = false;
+try { alex.invoke('reset_demo_data', {}); } catch (e) { resetBlocked = e.status === 400; }
+check('A seeded demo CIO cannot run the reset on itself', resetBlocked);
+const realCioClient = createClient(realCio.user_id);
+const resetResult = realCioClient.invoke('reset_demo_data', {});
+check('Real CIO account can run the reset', resetResult.ok === true && resetResult.removed_seed_members === 12);
+const post = getState();
+check('All 12 seeded demo members are gone', !post.profiles.some((p) => p.email?.endsWith('@school.edu.au')));
+check('The real CIO account survives the reset', post.profiles.some((p) => p.user_id === realCio.user_id));
+check('Every pitch/order/fill/post-mortem/letter is cleared', post.pitches.length === 0 && post.orders.length === 0 && post.fills.length === 0 && post.post_mortems.length === 0 && post.letters.length === 0);
+check('Cash reset to exactly the starting capital', V.cash(post) === post.fund_config.inception_capital);
+check('NAV history rebuilt as a flat line at the starting capital', post.nav_snapshots.length > 0 && post.nav_snapshots.every((n) => n.nav === post.fund_config.inception_capital));
+check('Fund config, sleeves and securities (the real universe) are untouched', post.sleeves.length === 4 && post.securities.length > 30);
+
 console.log(`\n${failures ? `${failures} FAILED` : 'All checks passed'}`);
 process.exit(failures ? 1 : 0);

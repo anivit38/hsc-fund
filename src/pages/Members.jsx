@@ -15,9 +15,11 @@ export default function Members() {
   const [newMember, setNewMember] = useState(emptyNew);
   const [resetFor, setResetFor] = useState(null);
   const [newPassword, setNewPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   const pending = (profiles || []).filter((p) => p.approved === false);
   const roster = (profiles || []).filter((p) => p.approved !== false);
+  const hasSeedData = roster.some((p) => p.email?.endsWith('@school.edu.au'));
 
   const update = async (uid, patch) => {
     setBusy(uid);
@@ -43,6 +45,21 @@ export default function Members() {
       setErr(e.message);
     } finally {
       setBusy(null);
+    }
+  };
+
+  const doResetDemo = async () => {
+    if (!window.confirm('This permanently removes all 12 demo members and every mock pitch, trade, and post-mortem. Cash resets to $1,000,000. Your own account, fund settings, and the securities universe are kept. This cannot be undone. Continue?')) return;
+    setResetting(true);
+    setErr(null);
+    try {
+      const r = await api.invoke('reset_demo_data', {});
+      await reload();
+      alert(`Done — removed ${r.removed_seed_members} demo members. ${r.members_remaining} member(s) remain.`);
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -168,6 +185,21 @@ export default function Members() {
         </div>
         <button className="btn btn-primary" disabled={busy || !newMember.full_name || !newMember.email} onClick={create}>Create member</button>
       </div>
+
+      {hasSeedData && (
+        <div className="card card-pad" style={{ maxWidth: 520, marginTop: 16, borderColor: 'var(--loss)' }}>
+          <h3 style={{ marginTop: 0, fontSize: 14, color: 'var(--loss)' }}>Remove demo data</h3>
+          <p className="muted" style={{ fontSize: 12.5 }}>
+            The 12 example members (Alex Chen, Priya Sharma, etc.) and every mock pitch, trade, and
+            post-mortem are still in the fund. This clears all of it in one go — cash resets to $1,000,000,
+            the NAV chart resets to a flat starting line — and keeps your own account, fund settings, and
+            the tradable universe exactly as they are. There's no undo.
+          </p>
+          <button className="btn btn-danger" disabled={resetting} onClick={doResetDemo}>
+            {resetting ? 'Removing…' : 'Remove all demo data'}
+          </button>
+        </div>
+      )}
     </Layout>
   );
 }

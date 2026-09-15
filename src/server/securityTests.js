@@ -84,6 +84,16 @@ export const SECURITY_TESTS = [
     run: (c) => c.invoke('manage_member', { user_id: 'u-mia', role: 'pm', sleeve_id: 'sl-eq' }),
   },
   {
+    id: 'reset-demo-analyst', as: 'u-mia', expect: 'blocked', area: 'Edge Functions',
+    title: 'Analyst calls reset_demo_data',
+    run: (c) => c.invoke('reset_demo_data', {}),
+  },
+  {
+    id: 'reset-demo-seed-cio', as: 'u-alex', expect: 'blocked', area: 'Edge Functions',
+    title: 'A seeded demo CIO account cannot run reset_demo_data on itself',
+    run: (c) => c.invoke('reset_demo_data', {}),
+  },
+  {
     id: 'advisor-state', as: 'u-carter', expect: 'blocked', area: 'Edge Functions',
     title: 'Advisor cancels a pending order',
     run: (c) => c.invoke('cancel_order', { order_id: getState().orders.find((o) => o.status === 'pending_open')?.id ?? 'none' }),
