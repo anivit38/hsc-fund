@@ -20,7 +20,7 @@ const { previewTrade, catchUp, CRON_SECRET } = await import('./functions.js');
 const { FUNCTIONS } = await import('./functions.js');
 const V = await import('./views.js');
 const { closeSeries } = await import('./market.js');
-const { login, verifyToken, publicProfile, changePassword } = await import('./auth.js');
+const { login, signup, verifyToken, publicProfile, changePassword } = await import('./auth.js');
 const { refreshLiveHistory, refreshQuotes, getQuotes } = await import('./liveMarket.js');
 const { lastCompletedSession } = await import('./calendar.js');
 
@@ -119,6 +119,17 @@ app.get('/api/health', (req, res) => {
 app.post(
   '/api/auth/login',
   handle((req) => login(req.body?.email, req.body?.password)),
+);
+
+app.post(
+  '/api/auth/signup',
+  handle((req) => signup(req.body || {})),
+);
+
+// Public (no auth needed yet) so the signup form can offer a sleeve to join.
+app.get(
+  '/api/public/sleeves',
+  handle(() => (getState()?.sleeves || []).map(({ id, name, benchmark }) => ({ id, name, benchmark }))),
 );
 
 app.get(

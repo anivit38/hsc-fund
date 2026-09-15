@@ -1,13 +1,15 @@
-// Authentication. There is no self-signup (Flow A in the spec) — the CIO or the
-// person running the server creates accounts. Passwords are bcrypt-hashed on the
-// profile row; login exchanges email + password for a short-lived JWT signed
-// with JWT_SECRET. Every subsequent request carries that JWT and the server
+// Authentication. Self-signup is open (any email works — there's no school-
+// domain check) but a new account always starts as an 'analyst' in whatever
+// sleeve they pick; only an existing CIO can promote someone to pm/cio/advisor
+// from the Members screen. Passwords are bcrypt-hashed on the profile row;
+// login/signup exchange credentials for a short-lived JWT signed with
+// JWT_SECRET. Every subsequent request carries that JWT and the server
 // re-derives the caller's uid (and, from there, their role) from it — the token
 // is never trusted to say who it is except via its verified signature.
 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { tx, getState } from './store.js';
+import { tx, getState, uuid } from './store.js';
 import { ApiError } from './errors.js';
 
 const SECRET = process.env.JWT_SECRET || 'dev-only-insecure-secret-change-me';
@@ -43,6 +45,37 @@ export function login(email, password) {
     throw new ApiError(401, 'Invalid email or password');
   }
   return { token: issueToken(profile.user_id), profile: publicProfile(profile) };
+}
+
+export function signup({ full_name, email, password, sleeve_id }) {
+  return tx((s) => {
+    const name = String(full_name || '').trim();
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!name) throw new ApiError(400, 'Full name is required');
+    if (!normalized || !normalized.includes('@')) throw new ApiError(400, 'A valid email is required');
+    if (String(password || '').length < 8) throw new ApiError(400, 'Password must be at least 8 characters');
+    if (s.profiles.some((p) => p.email?.toLowerCase() === normalized)) {
+      throw new ApiError(409, 'An account with that email already exists — try signing in instead');
+    }
+    const sleeve = sleeve_id ? s.sleeves.find((x) => x.id === sleeve_id) : null;
+    if (sleeve_id && !sleeve) throw new ApiError(400, 'Unknown sleeve');
+
+    const profile = {
+      user_id: `u-${uuid().slice(0, 8)}`,
+      full_name: name,
+      email: normalized,
+      role: 'analyst', // self-signup only ever creates an analyst; a CIO promotes from Members
+      sleeve_id: sleeve?.id ?? null,
+      grade: null,
+      active: true,
+      created_at: new Date().toISOString(),
+      password_hash: hashPassword(password),
+    };
+    s.profiles.push(profile);
+    s.seq.audit += 1;
+    s.audit_log.push({ id: s.seq.audit, actor_id: profile.user_id, action: 'member.signed_up', entity: 'profiles', entity_id: null, payload: { user_id: profile.user_id, sleeve_id: profile.sleeve_id }, at: profile.created_at });
+    return { token: issueToken(profile.user_id), profile: publicProfile(profile) };
+  });
 }
 
 export function changePassword(uid, currentPassword, newPassword) {

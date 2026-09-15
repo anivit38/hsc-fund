@@ -43,6 +43,8 @@ const qs = (params) => {
 
 export const api = {
   login: (email, password) => request('POST', '/api/auth/login', { email, password }),
+  signup: (full_name, email, password, sleeve_id) => request('POST', '/api/auth/signup', { full_name, email, password, sleeve_id }),
+  publicSleeves: () => request('GET', '/api/public/sleeves'),
   me: () => request('GET', '/api/auth/me'),
   changePassword: (current_password, new_password) => request('POST', '/api/auth/change-password', { current_password, new_password }),
   health: () => request('GET', '/api/health'),

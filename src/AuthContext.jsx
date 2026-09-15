@@ -37,12 +37,20 @@ export function AuthProvider({ children }) {
     return profile;
   }, []);
 
+  const signup = useCallback(async (fullName, email, password, sleeveId) => {
+    setError(null);
+    const { token, profile } = await api.signup(fullName, email, password, sleeveId);
+    setToken(token);
+    setProfile(profile);
+    return profile;
+  }, []);
+
   const logout = useCallback(() => {
     setToken(null);
     setProfile(null);
   }, []);
 
-  return <Ctx.Provider value={{ profile, loading, error, login, logout, refresh }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ profile, loading, error, login, signup, logout, refresh }}>{children}</Ctx.Provider>;
 }
 
 export const useAuth = () => useContext(Ctx);

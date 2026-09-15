@@ -6,3 +6,4 @@ data/
 .firebase/
 firebase-debug.log
 
+.env.production

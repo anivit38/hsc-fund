@@ -119,7 +119,7 @@ export default function Members() {
 
       <div className="card card-pad" style={{ maxWidth: 520 }}>
         <h3 style={{ marginTop: 0, fontSize: 14 }}>Add a member</h3>
-        <p className="muted" style={{ fontSize: 12 }}>No self-signup — this is the only way new accounts get created.</p>
+        <p className="muted" style={{ fontSize: 12 }}>Members can also create their own account from the sign-in screen — use this form to add someone directly instead, or to set their role/sleeve up front.</p>
         <div className="grid grid-2">
           <div className="field"><label className="required">Full name</label><input value={newMember.full_name} onChange={(e) => setNewMember((m) => ({ ...m, full_name: e.target.value }))} /></div>
           <div className="field"><label className="required">Email</label><input type="email" value={newMember.email} onChange={(e) => setNewMember((m) => ({ ...m, email: e.target.value }))} /></div>
