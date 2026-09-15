@@ -103,6 +103,21 @@ export default function Members() {
         </div>
       </div>
 
+      {hasSeedData && (
+        <div className="card card-pad" style={{ marginBottom: 16, borderColor: 'var(--loss)' }}>
+          <h3 style={{ marginTop: 0, fontSize: 14, color: 'var(--loss)' }}>⚠ Remove demo data</h3>
+          <p className="muted" style={{ fontSize: 12.5 }}>
+            The 12 example members (Alex Chen, Priya Sharma, etc.) and every mock pitch, trade, and
+            post-mortem are still in the fund. This clears all of it in one go — cash resets to $1,000,000,
+            the NAV chart resets to a flat starting line — and keeps your own account, fund settings, and
+            the tradable universe exactly as they are. There's no undo.
+          </p>
+          <button className="btn btn-danger" disabled={resetting} onClick={doResetDemo}>
+            {resetting ? 'Removing…' : 'Remove all demo data'}
+          </button>
+        </div>
+      )}
+
       {pending.length > 0 && (
         <div className="card" style={{ marginBottom: 16, borderColor: 'var(--gold-500)' }}>
           <div className="card-header">
@@ -207,21 +222,6 @@ export default function Members() {
         </div>
         <button className="btn btn-primary" disabled={busy || !newMember.full_name || !newMember.email} onClick={create}>Create member</button>
       </div>
-
-      {hasSeedData && (
-        <div className="card card-pad" style={{ maxWidth: 520, marginTop: 16, borderColor: 'var(--loss)' }}>
-          <h3 style={{ marginTop: 0, fontSize: 14, color: 'var(--loss)' }}>Remove demo data</h3>
-          <p className="muted" style={{ fontSize: 12.5 }}>
-            The 12 example members (Alex Chen, Priya Sharma, etc.) and every mock pitch, trade, and
-            post-mortem are still in the fund. This clears all of it in one go — cash resets to $1,000,000,
-            the NAV chart resets to a flat starting line — and keeps your own account, fund settings, and
-            the tradable universe exactly as they are. There's no undo.
-          </p>
-          <button className="btn btn-danger" disabled={resetting} onClick={doResetDemo}>
-            {resetting ? 'Removing…' : 'Remove all demo data'}
-          </button>
-        </div>
-      )}
     </Layout>
   );
 }
