@@ -93,6 +93,7 @@ export default function Layout({ title, subtitle, actions, children }) {
               <Item to="/pitches" letter="A">All Pitches</Item>
               <Item to="/leaderboard" letter="L">Leaderboard</Item>
               <Item to="/letters" letter="✉">Letters</Item>
+              <Item to="/guide" letter="?">Guide</Item>
             </div>
 
             {role === 'analyst' && (

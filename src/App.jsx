@@ -20,6 +20,7 @@ import AuditLog from './pages/AuditLog.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
 import Letters from './pages/Letters.jsx';
 import Account from './pages/Account.jsx';
+import Guide from './pages/Guide.jsx';
 
 function Guard({ roles, children }) {
   const { profile, loading } = useAuth();
@@ -57,6 +58,7 @@ export default function App() {
       <Route path="/leaderboard" element={<Guard><Leaderboard /></Guard>} />
       <Route path="/letters" element={<Guard><Letters /></Guard>} />
       <Route path="/account" element={<Guard><Account /></Guard>} />
+      <Route path="/guide" element={<Guard><Guide /></Guard>} />
 
       <Route path="/new-pitch" element={<Guard roles={['analyst']}><NewPitch /></Guard>} />
       <Route path="/my-pitches" element={<Guard roles={['analyst']}><MyPitches /></Guard>} />
