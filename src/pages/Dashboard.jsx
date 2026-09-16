@@ -1,6 +1,7 @@
 import Layout from '../components/Layout.jsx';
 import LineChart from '../components/LineChart.jsx';
 import BarBreakdown from '../components/BarBreakdown.jsx';
+import DonutChart from '../components/DonutChart.jsx';
 import CountUp from '../components/CountUp.jsx';
 import { SkeletonCard } from '../components/Skeleton.jsx';
 import { useView } from '../hooks.js';
@@ -24,6 +25,10 @@ export default function Dashboard() {
 
   const navSeriesData = indexed(navSeries.data);
   const oneDayDelta = navSeriesData.length > 1 ? navSeriesData.at(-1).value - navSeriesData.at(-2).value : 0;
+
+  const classRows = (exposures.data?.by_asset_class || []).map((r) => ({ key: r.key, label: r.label, pct: r.pct, value: r.value, count: r.count }));
+  const sleeveRows = (exposures.data?.by_sleeve || []).map((r) => ({ key: r.key, label: r.label, pct: r.pct, value: r.value, count: r.count }));
+  const withCount = (rows) => rows.map((r) => ({ ...r, label: `${r.label} (${r.count})` }));
 
   return (
     <Layout
@@ -81,7 +86,10 @@ export default function Dashboard() {
                 <h2>Exposure by asset class</h2>
               </div>
               <div className="card-pad">
-                <BarBreakdown rows={exposures.data?.by_asset_class.map((r) => ({ key: r.key, label: `${r.label} (${r.count})`, pct: r.pct, value: r.value }))} />
+                <DonutChart rows={classRows} centerLabel="Invested" centerValue={classRows.reduce((a, r) => a + r.value, 0)} formatValue={(v) => money(v)} />
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                  <BarBreakdown rows={withCount(classRows)} />
+                </div>
               </div>
             </div>
             <div className="card">
@@ -89,7 +97,10 @@ export default function Dashboard() {
                 <h2>Exposure by sleeve</h2>
               </div>
               <div className="card-pad">
-                <BarBreakdown rows={exposures.data?.by_sleeve.map((r) => ({ key: r.key, label: `${r.label} (${r.count})`, pct: r.pct, value: r.value }))} />
+                <DonutChart rows={sleeveRows} centerLabel="Invested" centerValue={sleeveRows.reduce((a, r) => a + r.value, 0)} formatValue={(v) => money(v)} />
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                  <BarBreakdown rows={withCount(sleeveRows)} />
+                </div>
               </div>
             </div>
           </div>
