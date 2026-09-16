@@ -37,6 +37,7 @@ const { login, signup, verifyToken, publicProfile, changePassword } = await impo
 const { refreshLiveHistory, refreshQuotes, getQuotes } = await import('./liveMarket.js');
 const { lastCompletedSession } = await import('./calendar.js');
 
+const BOOT_AT = new Date().toISOString();
 const PORT = process.env.PORT || 8080;
 const LIVE_MARKET = process.env.LIVE_MARKET !== 'false';
 const ORIGIN = process.env.CORS_ORIGIN; // e.g. https://your-app.web.app — comma-separated for multiple
@@ -131,6 +132,12 @@ app.get('/api/health', (req, res) => {
     ok: true, date: s?.clock?.date, nav: s ? Math.round(V.nav(s)) : null, live_market: LIVE_MARKET,
     storage: process.env.DATABASE_URL ? 'postgres' : 'file',
     member_count: s?.profiles?.length ?? null,
+    // Timestamp this specific process booted — lets us confirm from the
+    // outside that a deploy actually replaced the running process (memory
+    // is the source of truth between boots; a direct DB edit or a deploy
+    // that hasn't finished rolling out yet won't be reflected until this
+    // changes), rather than assuming a git push == a live restart.
+    boot_at: BOOT_AT,
   });
 });
 
