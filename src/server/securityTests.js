@@ -79,6 +79,11 @@ export const SECURITY_TESTS = [
     run: (c) => c.invoke('run_fills', { date: getState().clock.date }),
   },
   {
+    id: 'cio-self-deactivate', as: 'u-alex', expect: 'blocked', area: 'Edge Functions',
+    title: 'CIO deactivates their own account (self-lockout) — this actually happened once',
+    run: (c) => c.invoke('manage_member', { user_id: c.uid, active: false }),
+  },
+  {
     id: 'manage-roles-pm', as: 'u-priya', expect: 'blocked', area: 'Edge Functions',
     title: 'PM promotes a friend to PM via manage_member',
     run: (c) => c.invoke('manage_member', { user_id: 'u-mia', role: 'pm', sleeve_id: 'sl-eq' }),

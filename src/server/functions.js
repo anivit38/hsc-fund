@@ -285,6 +285,13 @@ export function manage_member(uid, { user_id, role, sleeve_id, active, approved 
     requireRole(me, 'cio');
     const target = s.profiles.find((p) => p.user_id === user_id);
     if (!target) throw new ApiError(404, 'Member not found');
+    // A CIO deactivating (or demoting/unapproving) their own account locks
+    // them out immediately, with no way back in through the app — this has
+    // actually happened. Force that specific change to go through a
+    // different, still-logged-in CIO instead.
+    if (user_id === uid && ((active !== undefined && !active) || (role !== undefined && role !== target.role) || (approved !== undefined && !approved))) {
+      throw new ApiError(400, "You can't deactivate, demote, or unapprove your own account — ask another CIO to make this change, or promote someone else first.");
+    }
     const next = {
       role: role ?? target.role,
       sleeve_id: sleeve_id === undefined ? target.sleeve_id : sleeve_id || null,

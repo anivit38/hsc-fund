@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Layout from '../components/Layout.jsx';
+import { useAuth } from '../AuthContext.jsx';
 import { useTable } from '../hooks.js';
 import { api } from '../api.js';
 import { date, dateTime } from '../format.js';
@@ -8,6 +9,7 @@ const ROLES = ['analyst', 'pm', 'cio', 'advisor'];
 const emptyNew = { full_name: '', email: '', role: 'analyst', sleeve_id: '', grade: '' };
 
 export default function Members() {
+  const { profile: me } = useAuth();
   const { data: profiles, loading, reload } = useTable('profiles');
   const { data: sleeves } = useTable('sleeves');
   const [busy, setBusy] = useState(null);
@@ -150,12 +152,14 @@ export default function Members() {
           <table>
             <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Sleeve</th><th>Grade</th><th>Status</th><th>Joined</th><th></th></tr></thead>
             <tbody>
-              {!loading && roster.map((p) => (
+              {!loading && roster.map((p) => {
+                const isSelf = p.user_id === me?.user_id;
+                return (
                 <tr key={p.user_id}>
-                  <td style={{ fontWeight: 700 }}>{p.full_name}</td>
+                  <td style={{ fontWeight: 700 }}>{p.full_name}{isSelf && <span className="badge badge-purple" style={{ marginLeft: 6 }}>you</span>}</td>
                   <td className="muted">{p.email}</td>
                   <td>
-                    <select value={p.role} disabled={busy === p.user_id} onChange={(e) => update(p.user_id, { role: e.target.value })} style={{ width: 130 }}>
+                    <select value={p.role} disabled={busy === p.user_id || isSelf} title={isSelf ? "You can't change your own role" : undefined} onChange={(e) => update(p.user_id, { role: e.target.value })} style={{ width: 130 }}>
                       {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </td>
@@ -172,14 +176,20 @@ export default function Members() {
                   </td>
                   <td className="muted">{p.grade || '—'}</td>
                   <td>
-                    <button className={`btn btn-sm ${p.active ? '' : 'btn-danger'}`} disabled={busy === p.user_id} onClick={() => update(p.user_id, { active: !p.active })}>
+                    <button
+                      className={`btn btn-sm ${p.active ? '' : 'btn-danger'}`}
+                      disabled={busy === p.user_id || isSelf}
+                      title={isSelf ? "You can't deactivate your own account — ask another CIO" : undefined}
+                      onClick={() => update(p.user_id, { active: !p.active })}
+                    >
                       {p.active ? 'Active' : 'Inactive'}
                     </button>
                   </td>
                   <td className="muted">{date(p.created_at)}</td>
                   <td><button className="btn btn-sm" onClick={() => setResetFor(p.user_id)}>Reset password</button></td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
